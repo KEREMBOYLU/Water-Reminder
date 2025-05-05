@@ -9,7 +9,7 @@ import SwiftUI
 import Charts
 
 struct DailyChartView: View {
-    let data: [WaterData]
+    let data = WaterData.MOCK_WATER_DATA
     @State private var selectedDate = Calendar.current.startOfDay(for: Date())
     var body: some View {
         let calendar = Calendar.current
@@ -21,62 +21,23 @@ struct DailyChartView: View {
             }
             .sorted(by: { $0.hour < $1.hour })
 
-        let rawMax = hourlyTotals.map(\.total).max() ?? 500
-        let roundedMax = rawMax > 1000
-            ? ((rawMax + 499) / 500) * 500
-            : ((rawMax + 249) / 250) * 250
-
         return VStack(alignment: .leading, spacing: 8){
-            if todayData.isEmpty {
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("Veri Yok")
+            VStack(alignment: .leading, spacing: 4) {
+                if todayData.isEmpty{
+                
+                    Text("No Data")
                         .font(.title)
                         .bold()
+                        .padding(.top)
 
                     Text(formattedDate(selectedDate))
                         .foregroundColor(.gray)
                         .font(.subheadline)
-                }
-                .padding(.horizontal)
-                .padding(.bottom, 4)
-                .padding(.top)
-
-                Chart {
-                    // No data
-                }
-                .chartXAxis {
-                    AxisMarks(values: [0, 6, 12, 18]) { value in
-                        AxisGridLine()
-                        AxisTick()
-                        AxisValueLabel {
-                            switch value.as(Int.self) {
-                            case 0: Text("ÖÖ 12")
-                            case 6: Text("6")
-                            case 12: Text("ÖS 12")
-                            case 18: Text("6")
-                            default: EmptyView()
-                            }
-                        }
-                    }
-                }
-                .chartXScale(domain: 0...23, range: .plotDimension(padding: 16))
-                .chartYScale(domain: 0...500)
-                .chartYAxis {
-                    AxisMarks(values: [0, 250, 500]) {
-                        AxisGridLine()
-                        AxisTick()
-                        AxisValueLabel()
-                    }
-                }
-                .padding(.top, 8)
-                .frame(height: 220)
-                .padding(.horizontal)
-                .padding(.bottom)
-            } else {
-                let totalAmount = todayData.reduce(0) { $0 + $1.amount }
-
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("TOPLAM")
+    
+                }else {
+                    let totalAmount = todayData.reduce(0) { $0 + $1.amount }
+                    
+                    Text("TOTAL")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
@@ -87,50 +48,40 @@ struct DailyChartView: View {
                     Text(formattedDate(selectedDate))
                         .font(.subheadline)
                         .foregroundColor(.gray)
+                    
                 }
-                .padding(.horizontal)
-                .padding(.bottom, 4)
-
-                Chart {
-                    ForEach(hourlyTotals, id: \.hour) { entry in
-                        BarMark(
-                            x: .value("Saat", entry.hour),
-                            y: .value("mL", entry.total)
-                        )
-                        .foregroundStyle(.cyan)
-                    }
+            }
+            .padding(.bottom, 4)
+            
+            Chart {
+                ForEach(hourlyTotals, id: \.hour) { entry in
+                    BarMark(
+                        x: .value("hour", entry.hour),
+                        y: .value("ml", entry.total)
+                    )
+                    .foregroundStyle(.cyan)
                 }
-                .chartXAxis {
-                    AxisMarks(values: [0, 6, 12, 18]) { value in
-                        AxisGridLine()
-                        AxisTick()
-                        AxisValueLabel {
-                            switch value.as(Int.self) {
-                            case 0: Text("ÖÖ 12")
-                            case 6: Text("6")
-                            case 12: Text("ÖS 12")
-                            case 18: Text("6")
-                            default: EmptyView()
-                            }
+            }
+            .chartXAxis {
+                AxisMarks(values: [0, 6, 12, 18]) { value in
+                    AxisGridLine()
+                    AxisTick()
+                    AxisValueLabel {
+                        if let hour = value.as(Int.self) {
+                            Text(formattedHour(hour))
+                                .foregroundColor(.gray)
+                                .font(.caption2)
                         }
                     }
                 }
-                .chartXScale(domain: 0...23)
-                .chartXScale(range: .plotDimension(padding: 16))
-                .chartYScale(domain: 0...roundedMax)
-                .chartYAxis {
-                    AxisMarks(values: stride(from: 0, through: roundedMax, by: rawMax > 1000 ? 500 : 250).map { $0 }) {
-                        AxisGridLine()
-                        AxisTick()
-                        AxisValueLabel()
-                    }
-                }
-                .padding(.top, 8)
-                .frame(height: 220)
-                .padding(.horizontal)
-                .padding(.bottom)
             }
+            .chartXScale(domain: 0...23)
+            .chartXScale(range: .plotDimension(padding: 16))
+            .padding(.top, 8)
+            .frame(height: 220)
         }
+        .padding(.horizontal)
+        .padding(.bottom)
         .animation(.easeInOut, value: selectedDate)
         .gesture(
             DragGesture()
@@ -151,19 +102,29 @@ struct DailyChartView: View {
                             }
                         }
                     }
-                })
+                }
+        )
     }
-    
 
     func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        formatter.locale = Locale.current
+        let preferred = Locale.preferredLanguages.first ?? "en"
+        formatter.locale = Locale(identifier: preferred)
         formatter.dateFormat = "d MMMM yyyy EEE"
+        return formatter.string(from: date)
+    }
+    
+    func formattedHour(_ hour: Int) -> String {
+        let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date())!
+        let formatter = DateFormatter()
+        let preferred = Locale.preferredLanguages.first ?? "en"
+        formatter.locale = Locale(identifier: preferred)
+        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: formatter.locale)
         return formatter.string(from: date)
     }
 }
 
 #Preview {
-    DailyChartView(data: WaterData.MOCK_WATER_DATA)
+    DailyChartView()
 
 }
