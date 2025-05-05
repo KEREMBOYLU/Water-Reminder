@@ -14,37 +14,40 @@ struct DailyChartView: View {
     var body: some View {
         let calendar = Calendar.current
         let todayData = data.filter { calendar.isDate($0.date, inSameDayAs: selectedDate) }
-
+        
         let hourlyTotals = Dictionary(grouping: todayData, by: { calendar.component(.hour, from: $0.date) })
             .map { hour, entries in
                 (hour: hour, total: entries.reduce(0) { $0 + $1.amount })
             }
             .sorted(by: { $0.hour < $1.hour })
-
+        
         return VStack(alignment: .leading, spacing: 8){
             VStack(alignment: .leading, spacing: 4) {
                 if todayData.isEmpty{
-                
+                    
+                    Text("")
+                        .font(.caption)
+                        .foregroundColor(.secondary)
+                    
                     Text("No Data")
                         .font(.title)
                         .bold()
-                        .padding(.top)
-
+                    
                     Text(formattedDate(selectedDate))
                         .foregroundColor(.gray)
                         .font(.subheadline)
-    
+                    
                 }else {
                     let totalAmount = todayData.reduce(0) { $0 + $1.amount }
                     
                     Text("TOTAL")
                         .font(.caption)
                         .foregroundColor(.secondary)
-
+                    
                     Text("\(Int(totalAmount)) ml")
                         .font(.title)
                         .bold()
-
+                    
                     Text(formattedDate(selectedDate))
                         .font(.subheadline)
                         .foregroundColor(.gray)
@@ -59,7 +62,7 @@ struct DailyChartView: View {
                         x: .value("hour", entry.hour),
                         y: .value("ml", entry.total)
                     )
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(Color("ChartColor"))
                 }
             }
             .chartXAxis {
@@ -105,7 +108,7 @@ struct DailyChartView: View {
                 }
         )
     }
-
+    
     func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
         let preferred = Locale.preferredLanguages.first ?? "en"
@@ -126,5 +129,5 @@ struct DailyChartView: View {
 
 #Preview {
     DailyChartView()
-
+    
 }

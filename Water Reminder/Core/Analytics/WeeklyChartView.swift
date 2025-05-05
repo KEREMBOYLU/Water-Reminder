@@ -14,7 +14,7 @@ struct WeeklyChartView: View {
     
     let firstWeekdaySetting = 2 // 1 = Sunday, 2 = Monday (default)
     let preferred = Locale.preferredLanguages.first ?? "en"
-
+    
     var calendar: Calendar {
         var cal = Calendar(identifier: .gregorian)
         cal.locale = Locale(identifier: Locale.current.identifier)
@@ -76,7 +76,7 @@ struct WeeklyChartView: View {
                         x: .value("Gün", weekdaySymbol(for: entry.date)),
                         y: .value("ml", entry.total)
                     )
-                    .foregroundStyle(.cyan)
+                    .foregroundStyle(Color("ChartColor"))
                 }
             }
             .padding(.top, 8)
@@ -127,23 +127,23 @@ struct WeeklyChartView: View {
     func formattedDateRange(_ from: Date, to: Date) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: preferred)
-
+        
         let fromComponents = calendar.dateComponents([.day, .month, .year], from: from)
         let toComponents = calendar.dateComponents([.day, .month, .year], from: to)
-
+        
         let monthSymbols = formatter.shortMonthSymbols ?? []
-
+        
         let fromDay = fromComponents.day ?? 0
         let fromMonth = fromComponents.month ?? 1
         let fromYear = fromComponents.year ?? 0
-
+        
         let toDay = toComponents.day ?? 0
         let toMonth = toComponents.month ?? 1
         let toYear = toComponents.year ?? 0
-
+        
         let fromMonthName = monthSymbols[safe: fromMonth - 1] ?? ""
         let toMonthName = monthSymbols[safe: toMonth - 1] ?? ""
-
+        
         if fromYear != toYear {
             return "\(fromDay) \(fromMonthName) \(fromYear) – \(toDay) \(toMonthName) \(toYear)"
         } else if fromMonth != toMonth {
