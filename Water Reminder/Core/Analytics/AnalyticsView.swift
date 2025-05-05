@@ -12,51 +12,67 @@ struct AnalyticsView: View {
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
-
+                
                 // Segmented control
-                HStack(spacing: 0) {
-                    ForEach(["Gün", "Hafta", "Ay", "Yıl"].indices, id: \.self) { index in
-                        let options = ["Gün", "Hafta", "Ay", "Yıl"]
-                        let label = options[index]
-                        let nextLabel = index + 1 < options.count ? options[index + 1] : nil
-                        Button(action: {
-                            selectedRange = label
-                        }) {
-                            Text(label)
-                                .font(.system(size: 16, weight: selectedRange == label ? .bold : .semibold))
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 40)
-                                .background(
-                                    RoundedRectangle(cornerRadius: 6)
-                                        .fill(selectedRange == label ? Color.blue : Color(.systemGray5))
-                                )
-                                .foregroundColor(selectedRange == label ? .white : .primary)
-                        }
-
-                        if index < 3 {
-                            if selectedRange != label && selectedRange != nextLabel {
-                                Divider()
-                                    .frame(width: 1, height: 20)
-                                    .background(Color.gray.opacity(0.3))
+                let options = ["Gün", "Hafta", "Ay", "Yıl"]
+                let selectedIndex = options.firstIndex(of: selectedRange) ?? 0
+                
+                GeometryReader { geo in
+                    let buttonWidth = geo.size.width / CGFloat(options.count)
+                    
+                    ZStack(alignment: .leading) {
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color(.systemGray5))
+                        
+                        RoundedRectangle(cornerRadius: 10, style: .continuous)
+                            .fill(Color("ButtonColor"))
+                            .frame(width: buttonWidth, height: 40)
+                            .offset(x: CGFloat(selectedIndex) * buttonWidth)
+                            .animation(.easeInOut, value: selectedIndex)
+                        
+                        HStack(spacing: 0) {
+                            ForEach(options.indices, id: \.self) { index in
+                                let label = options[index]
+                                let nextLabel = options[safe: index + 1] ?? ""
+                                Button(action: {
+                                    withAnimation(.easeInOut) {
+                                        selectedRange = label
+                                    }
+                                }) {
+                                    Text(label)
+                                        .font(.system(size: 16, weight: selectedRange == label ? .bold : .semibold))
+                                        .frame(width: buttonWidth, height: 40)
+                                        .foregroundColor(selectedRange == label ? .white : .primary)
+                                }
+                                if index < options.count - 1 {
+                                    if selectedRange != label && selectedRange != nextLabel {
+                                        Divider()
+                                            .frame(width: 1, height: 20)
+                                            .background(Color.gray.opacity(0.5))
+                                        
+                                    }
+                                    
+                                }
                             }
                         }
-                        
                     }
+                    .frame(height: 40)
+                    .clipShape(RoundedRectangle(cornerRadius: 10, style: .continuous))
                 }
-                .background(
-                    RoundedRectangle(cornerRadius: 6)
-                        .fill(Color(.systemGray5))
-                )
+                .frame(height: 40)
                 .padding(.horizontal)
-
+                
                 // Daily chart view placeholder
                 if selectedRange == "Gün" {
-                    DailyChartView(data: WaterData.MOCK_WATER_DATA)
+                    DailyChartView()
                 }
-
+                if selectedRange == "Hafta" {
+                    WeeklyChartView()
+                }
+                
                 Spacer()
             }
-            .navigationTitle("Analiz")
+            .navigationTitle("Analytics")
         }
     }
 }
