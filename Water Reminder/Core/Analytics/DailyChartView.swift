@@ -10,7 +10,10 @@ import Charts
 
 struct DailyChartView: View {
     let data = WaterData.MOCK_WATER_DATA
+    let preferred = Locale.preferredLanguages.first ?? "en"
+
     @State private var selectedDate = Calendar.current.startOfDay(for: Date())
+    @State private var selectedHour: Int? = nil
     var body: some View {
         let calendar = Calendar.current
         let todayData = data.filter { calendar.isDate($0.date, inSameDayAs: selectedDate) }
@@ -37,7 +40,16 @@ struct DailyChartView: View {
                         .foregroundColor(.gray)
                         .font(.subheadline)
                     
-                }else {
+                } else if selectedHour != nil {
+                    Text(" ")
+                        .font(.caption)
+                    
+                    Text(" ")
+                        .font(.title)
+                        .bold()
+                    Text(" ")
+                        .font(.subheadline)
+                } else {
                     let totalAmount = todayData.reduce(0) { $0 + $1.amount }
                     
                     Text("TOTAL")
@@ -57,14 +69,44 @@ struct DailyChartView: View {
             .padding(.bottom, 4)
             
             Chart {
+                
+                if let selectedHour {
+                    RuleMark(x: .value("Selected Hour", selectedHour))
+                        .foregroundStyle(.secondary)
+                        .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                            if let entry = hourlyTotals.first(where: { $0.hour == selectedHour }) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    Text("TOTAL")
+                                        .font(.caption)
+                                        .foregroundColor(.secondary)
+
+                                    Text("\(entry.total, format: .number.grouping(.automatic)) ml")
+                                        .font(.title3)
+                                        .bold()
+
+                                    Text("\(selectedFormattedDate(selectedDate)) \(formattedHourRange(for: entry.hour))")
+                                        .font(.caption)
+                                        .foregroundColor(.gray)
+                                }
+                                .padding(6)
+                                .cornerRadius(8)
+                                .frame(width: 120)
+                        
+                            }
+                        }
+                }
+                
+                
                 ForEach(hourlyTotals, id: \.hour) { entry in
                     BarMark(
                         x: .value("hour", entry.hour),
                         y: .value("ml", entry.total)
                     )
                     .foregroundStyle(Color("ChartColor"))
+                    .opacity(selectedHour == nil || selectedHour == entry.hour ? 1.0 : 0.3)
                 }
             }
+            .chartXSelection(value: $selectedHour)
             .chartXAxis {
                 AxisMarks(values: [0, 6, 12, 18]) { value in
                     AxisGridLine()
@@ -84,6 +126,7 @@ struct DailyChartView: View {
             .frame(height: 220)
         }
         .padding(.horizontal)
+        
         .padding(.bottom)
         .animation(.easeInOut, value: selectedDate)
         .gesture(
@@ -94,6 +137,7 @@ struct DailyChartView: View {
                         if let newDate = calendar.date(byAdding: .day, value: -1, to: selectedDate) {
                             withAnimation(.easeInOut) {
                                 selectedDate = newDate
+                                selectedHour = nil
                             }
                         }
                     } else if value.translation.width < -50 {
@@ -102,6 +146,7 @@ struct DailyChartView: View {
                            newDate <= Calendar.current.startOfDay(for: Date()) {
                             withAnimation(.easeInOut) {
                                 selectedDate = newDate
+                                selectedHour = nil
                             }
                         }
                     }
@@ -111,19 +156,30 @@ struct DailyChartView: View {
     
     func formattedDate(_ date: Date) -> String {
         let formatter = DateFormatter()
-        let preferred = Locale.preferredLanguages.first ?? "en"
         formatter.locale = Locale(identifier: preferred)
         formatter.dateFormat = "d MMMM yyyy EEE"
+        return formatter.string(from: date)
+    }
+    
+    func selectedFormattedDate(_ date: Date) -> String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: preferred)
+        formatter.dateFormat = "d MMMM EEE"
         return formatter.string(from: date)
     }
     
     func formattedHour(_ hour: Int) -> String {
         let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date())!
         let formatter = DateFormatter()
-        let preferred = Locale.preferredLanguages.first ?? "en"
         formatter.locale = Locale(identifier: preferred)
         formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: formatter.locale)
         return formatter.string(from: date)
+    }
+    
+    func formattedHourRange(for hour: Int) -> String {
+        let start = formattedHour(hour)
+        let end = formattedHour((hour + 1) % 24)
+        return "\(start)–\(end)"
     }
 }
 
