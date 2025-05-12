@@ -8,9 +8,9 @@
 import SwiftUI
 import Charts
 
-let preferred = Locale.preferredLanguages.first ?? "en"
 
 struct WeeklyChartView: View {
+
     @State private var selectedWeek: DateInterval = Calendar.current.dateInterval(of: .weekOfYear, for: Date())!
     @State private var selectedDay: Date? = nil
     
@@ -36,9 +36,10 @@ struct WeeklyChartView: View {
                         .font(.title)
                         .bold()
 
-                    Text(formattedDateRange(selectedWeek.start, to: selectedWeek.end))
+                    Text(Date.formattedRange(from: selectedWeek.start, to: selectedWeek.end))
                         .foregroundColor(.gray)
                         .font(.subheadline)
+                        .bold()
                     
                 } else if selectedDay != nil {
                     Text(" ")
@@ -55,13 +56,14 @@ struct WeeklyChartView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
 
-                    Text("\(formattedAverage(viewDays.map { $0.total })) ml")
+                    Text("\(calculateAvarage(viewDays.map { $0.total })) ml")
                         .font(.title)
                         .bold()
 
-                    Text(formattedDateRange(selectedWeek.start, to: selectedWeek.end))
+                    Text(Date.formattedRange(from: selectedWeek.start, to: selectedWeek.end))
                         .font(.subheadline)
                         .foregroundColor(.gray)
+                        .bold()
                 }
             }
             .padding(.bottom, 4)
@@ -81,9 +83,10 @@ struct WeeklyChartView: View {
                                         .font(.title3)
                                         .bold()
 
-                                    Text(formattedDate(viewDay.date))
+                                    Text(viewDay.date.formattedDate(format: "noDayName"))
                                         .font(.caption)
                                         .foregroundColor(.gray)
+                                        .bold()
                                 }
                             }
                         }
@@ -105,7 +108,7 @@ struct WeeklyChartView: View {
                     AxisTick()
                     AxisValueLabel {
                         if let date = date.as(Date.self) {
-                            Text(weekdaySymbol(for: date))
+                            Text(date.weekdaySymbol())
                         }
                     }
                 }
@@ -159,62 +162,12 @@ struct WeeklyChartView: View {
         return total > 0
     }
     
-    func weekdaySymbol(for weekday: Int) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(
-            identifier: Locale.preferredLanguages.first ?? "en"
-        )
-        return formatter.shortStandaloneWeekdaySymbols[weekday - 1]
-    }
-
-    func weekdaySymbol(for date: Date) -> String {
-        let calendar = Calendar.current
-        let weekday = calendar.component(.weekday, from: date)
-        return weekdaySymbol(for: weekday)
-    }
-    
-    func formattedAverage(_ data: [Int]) -> String {
-        guard !data.isEmpty else { return "0" }
+    func calculateAvarage(_ data: [Int]) -> String {
+        guard !data.isEmpty else {return "0"}
         let total = data.reduce(0, +)
-        let avg = Double(total) / Double(data.count)
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: preferred)
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: avg)) ?? "-"
+        let avg = total / data.count
+        return avg.localizedString()
     }
-    
-    func formattedDateRange(_ from: Date, to: Date) -> String {
-            let calendar = Calendar.current
-            let formatter = DateFormatter()
-            formatter.locale = Locale(identifier: preferred)
-            
-            let fromComponents = calendar.dateComponents([.day, .month, .year], from: from)
-            let toComponents = calendar.dateComponents([.day, .month, .year], from: to)
-            
-            let monthSymbols = formatter.shortMonthSymbols ?? []
-            
-            let fromDay = fromComponents.day ?? 0
-            let fromMonth = fromComponents.month ?? 1
-            let fromYear = fromComponents.year ?? 0
-            
-            let toDay = toComponents.day ?? 0
-            let toMonth = toComponents.month ?? 1
-            let toYear = toComponents.year ?? 0
-            
-            let fromMonthName = monthSymbols.indices.contains(fromMonth - 1) ? monthSymbols[fromMonth - 1] : ""
-            let toMonthName = monthSymbols.indices.contains(toMonth - 1) ? monthSymbols[toMonth - 1] : ""
-            
-            if fromYear != toYear {
-                return "\(fromDay) \(fromMonthName) \(fromYear) – \(toDay) \(toMonthName) \(toYear)"
-            } else if fromMonth != toMonth {
-                return "\(fromDay) \(fromMonthName) – \(toDay) \(toMonthName) \(toYear)"
-            } else {
-                return "\(fromDay) – \(toDay) \(toMonthName) \(toYear)"
-            }
-        }
-    
-    
 }
 
 struct ViewDay: Identifiable {
@@ -223,30 +176,6 @@ struct ViewDay: Identifiable {
     let total: Int
 }
 
-extension Date {
-    static func from(year: Int, month: Int, day: Int) -> Date {
-        var components = DateComponents()
-        components.year = year
-        components.month = month
-        components.day = day
-        return Calendar.current.date(from: components)!
-    }
-}
-
 #Preview {
     WeeklyChartView()
-}
-
-    func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: preferred)
-        formatter.setLocalizedDateFormatFromTemplate("d MMMM yyyy EEE")
-        return formatter.string(from: date)
-    }
-
-//Safe array access for collection
-extension Collection {
-    subscript(safe index: Index) -> Element? {
-        return indices.contains(index) ? self[index] : nil
-    }
 }

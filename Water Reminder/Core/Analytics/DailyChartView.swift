@@ -13,6 +13,7 @@ struct DailyChartView: View {
 
     @State private var selectedDate = Calendar.current.startOfDay(for: Date())
     @State private var selectedHour: Int? = nil
+    
     var body: some View {
         let calendar = Calendar.current
         let todayData = data.filter { calendar.isDate($0.date, inSameDayAs: selectedDate) }
@@ -35,9 +36,10 @@ struct DailyChartView: View {
                         .font(.title)
                         .bold()
                     
-                    Text(formattedDate(selectedDate))
+                    Text(selectedDate.formattedDate(format: "default"))
                         .foregroundColor(.gray)
                         .font(.subheadline)
+                        .bold()
                     
                 } else if selectedHour != nil {
                     Text(" ")
@@ -55,13 +57,14 @@ struct DailyChartView: View {
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
-                    Text("\(formatLocalizedAmount(totalAmount)) ml")
+                    Text("\(totalAmount.localizedString()) ml")
                         .font(.title)
                         .bold()
                     
-                    Text(formattedDate(selectedDate))
+                    Text(selectedDate.formattedDate(format: "default"))
                         .font(.subheadline)
                         .foregroundColor(.gray)
+                        .bold()
                     
                 }
             }
@@ -79,13 +82,14 @@ struct DailyChartView: View {
                                         .font(.caption)
                                         .foregroundColor(.secondary)
 
-                                    Text("\(formatLocalizedAmount(entry.total)) ml")
+                                    Text("\(entry.total.localizedString()) ml")
                                         .font(.title3)
                                         .bold()
 
-                                    Text("\(selectedFormattedDate(selectedDate)) \(formattedHourRange(for: entry.hour))")
+                                    Text("\(selectedDate.formattedDate(format: "noYear")) \(formattedHourRange(for: entry.hour))")
                                         .font(.caption)
                                         .foregroundColor(.gray)
+                                        .bold()
                                 }
                                 .padding(6)
                                 .cornerRadius(8)
@@ -153,24 +157,10 @@ struct DailyChartView: View {
         )
     }
     
-    func formattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: Locale.preferredLanguages.first ?? "en")
-        formatter.dateFormat = "d MMMM yyyy EEE"
-        return formatter.string(from: date)
-    }
-    
-    func selectedFormattedDate(_ date: Date) -> String {
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: Locale.preferredLanguages.first ?? "en")
-        formatter.dateFormat = "d MMMM EEE"
-        return formatter.string(from: date)
-    }
-    
     func formattedHour(_ hour: Int) -> String {
         let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date())!
         let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: Locale.preferredLanguages.first ?? "en")
+        formatter.locale = Locale(identifier: preferred)
         formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: formatter.locale)
         return formatter.string(from: date)
     }
@@ -179,15 +169,6 @@ struct DailyChartView: View {
         let start = formattedHour(hour)
         let end = formattedHour((hour + 1) % 24)
         return "\(start)–\(end)"
-    }
-    
-    func formatLocalizedAmount(_ amount: Int) -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: preferred)
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        formatter.numberStyle = .decimal
-        return formatter.string(from: NSNumber(value: amount)) ?? "\(amount)"
     }
 }
 
