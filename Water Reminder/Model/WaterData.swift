@@ -15,6 +15,41 @@ struct WaterData: Identifiable {
 
 extension WaterData{
     static var MOCK_WATER_DATA: [WaterData] = [
+        
+        // Day 22: May 12, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-12T08:30:00Z")!, amount: 250),
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-12T13:45:00Z")!, amount: 350),
+        
+        // Day 21: May 11, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-11T11:30:00Z")!, amount: 300),
+
+        
+        // Day 20: May 10, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-10T09:00:00Z")!, amount: 400),
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-10T17:15:00Z")!, amount: 200),
+
+        
+        // Day 19: May 9, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-09T08:00:00Z")!, amount: 200),
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-09T16:30:00Z")!, amount: 500),
+        
+        // Day 18: May 8, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-08T10:15:00Z")!, amount: 300),
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-08T14:45:00Z")!, amount: 300),
+        
+        // Day 17: May 7, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-07T07:45:00Z")!, amount: 250),
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-07T18:00:00Z")!, amount: 350),
+        
+        
+        // Day 16: May 6, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-06T09:30:00Z")!, amount: 400),
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-06T15:00:00Z")!, amount: 150),
+        
+        // Day 15: May 5, 2025
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-05T08:00:00Z")!, amount: 300),
+        .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-05T12:00:00Z")!, amount: 200),
+        
         // Day 1: May 4, 2025
         .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-04T08:00:00Z")!, amount: 100),
         .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-05-04T10:00:00Z")!, amount: 200),
@@ -97,5 +132,6 @@ extension WaterData{
         // Day 14: Apr 21, 2025
         .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-04-21T11:00:00Z")!, amount: 500),
         .init(id: UUID().uuidString, date: ISO8601DateFormatter().date(from: "2025-04-21T18:30:00Z")!, amount: 500),
+
     ]
 }
