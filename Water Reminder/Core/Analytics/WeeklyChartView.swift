@@ -83,7 +83,7 @@ struct WeeklyChartView: View {
                                         .font(.title3)
                                         .bold()
 
-                                    Text(viewDay.date.formattedDate(format: "noDayName"))
+                                    Text(viewDay.date.formattedDate(format: "d MMM yyyy"))
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                         .bold()
@@ -168,12 +168,12 @@ struct WeeklyChartView: View {
         let avg = total / data.count
         return avg.localizedString()
     }
-}
-
-struct ViewDay: Identifiable {
-    let id = UUID()
-    let date: Date
-    let total: Int
+    
+    struct ViewDay: Identifiable {
+        let id = UUID()
+        let date: Date
+        let total: Int
+    }
 }
 
 #Preview {

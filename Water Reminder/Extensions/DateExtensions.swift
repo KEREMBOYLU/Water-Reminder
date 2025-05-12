@@ -18,21 +18,11 @@ extension Date {
         return Calendar.current.date(from: components)
     }
     
-    func formattedDate(format: String = "default") -> String {
+    func formattedDate(format: String = "") -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: preferred)
-        switch format{
-        case "noDayName":
-            formatter.setLocalizedDateFormatFromTemplate("d MMM yyyy")
-            break
-        case "noYear":
-            formatter.setLocalizedDateFormatFromTemplate("d MMM EEE")
-            break
-        default:
-            formatter.setLocalizedDateFormatFromTemplate("d MMM yyyy EEE")
-            break
-        }
-        
+        let dateFormat = format.isEmpty ? "d MMM yyyy EEE" : format
+        formatter.setLocalizedDateFormatFromTemplate(dateFormat)
         return formatter.string(from: self)
     }
     

@@ -36,7 +36,7 @@ struct DailyChartView: View {
                         .font(.title)
                         .bold()
                     
-                    Text(selectedDate.formattedDate(format: "default"))
+                    Text(selectedDate.formattedDate())
                         .foregroundColor(.gray)
                         .font(.subheadline)
                         .bold()
@@ -61,7 +61,7 @@ struct DailyChartView: View {
                         .font(.title)
                         .bold()
                     
-                    Text(selectedDate.formattedDate(format: "default"))
+                    Text(selectedDate.formattedDate())
                         .font(.subheadline)
                         .foregroundColor(.gray)
                         .bold()
@@ -86,7 +86,7 @@ struct DailyChartView: View {
                                         .font(.title3)
                                         .bold()
 
-                                    Text("\(selectedDate.formattedDate(format: "noYear")) \(formattedHourRange(for: entry.hour))")
+                                    Text("\(selectedDate.formattedDate(format: "d MMM EEE")) \(formattedHourRange(for: entry.hour))")
                                         .font(.caption)
                                         .foregroundColor(.gray)
                                         .bold()
