@@ -14,6 +14,12 @@ struct WeeklyChartView: View {
     @State private var selectedWeek: DateInterval = Calendar.current.dateInterval(of: .weekOfYear, for: Date())!
     @State private var selectedDay: Date? = nil
     
+    struct ViewDay: Identifiable {
+        let id = UUID()
+        let date: Date
+        let total: Int
+    }
+    
     var selectedViewDay: ViewDay? {
         guard let selectedDay else { return nil }
         return viewDays.first { $0.date == selectedDay }
@@ -24,21 +30,68 @@ struct WeeklyChartView: View {
     }
     
     var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(.systemGray5))
+
+            HStack {
+                Button(action: {
+                    let prevWeek = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: selectedWeek.start)!
+                    selectedWeek = Calendar.current.dateInterval(of: .weekOfYear, for: prevWeek) ?? selectedWeek
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.secondary)
+                        .font(.title3)
+                        .padding()
+                }
+                
+                Divider()
+                    .frame(width: 1, height: 15)
+                    .background(Color.gray.opacity(0.5))
+
+                Spacer()
+
+                Text(Date.formattedRange(from: selectedWeek.start, to: selectedWeek.end - 1))
+                    .font(.subheadline)
+                    .bold()
+
+                Spacer()
+                
+                Divider()
+                    .frame(width: 1, height: 15)
+                    .background(Color.gray.opacity(0.5))
+
+                let today = Calendar.current.startOfDay(for: Date())
+                let nextWeek = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: selectedWeek.start)!
+                let isFutureWeek = nextWeek > today
+
+                Button(action: {
+                    if !isFutureWeek {
+                        selectedWeek = Calendar.current.dateInterval(of: .weekOfYear, for: nextWeek) ?? selectedWeek
+                    }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(isFutureWeek ? .gray : .secondary)
+                        .font(.title3)
+                        .padding()
+                }
+            }
+            .padding(.vertical, 2)
+            .padding(.horizontal, 8)
+        }
+        .frame(height: 30)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.horizontal)
 
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
-                if !hasData(in: selectedWeek, data: WaterData.MOCK_WATER_DATA) {
-                    Text("")
+                if !hasData(in: selectedWeek, data: WaterData.MOCK_WATER_DATA){
+                    Text(" ")
                         .font(.caption)
                         .foregroundColor(.secondary)
 
                     Text("No Data")
                         .font(.title)
-                        .bold()
-
-                    Text(Date.formattedRange(from: selectedWeek.start, to: selectedWeek.end))
-                        .foregroundColor(.gray)
-                        .font(.subheadline)
                         .bold()
                     
                 } else if selectedDay != nil {
@@ -48,8 +101,6 @@ struct WeeklyChartView: View {
                     Text(" ")
                         .font(.title)
                         .bold()
-                    Text(" ")
-                        .font(.subheadline)
                 }
                 else {
                     Text("AVERAGE")
@@ -59,38 +110,41 @@ struct WeeklyChartView: View {
                     Text("\(calculateAvarage(viewDays.map { $0.total })) ml")
                         .font(.title)
                         .bold()
-
-                    Text(Date.formattedRange(from: selectedWeek.start, to: selectedWeek.end))
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .bold()
                 }
             }
-            .padding(.bottom, 4)
+            .padding(.vertical, 8)
             
             Chart {
-                if let selected = selectedDay {
+                if let selected = selectedDay,
+                   let viewDay = viewDays.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selected) }),
+                   viewDay.total > 0 {
                     RuleMark(x: .value("Selected Day", selected, unit: .day))
+                        .zIndex(-10)
+                        .offset(yStart: -10)
                         .foregroundStyle(.secondary)
-                        .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            if let viewDay = viewDays.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selected) }) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("TOTAL")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                        .annotation(position: .top,
+                                    spacing: 0,
+                                    overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text("TOTAL")
+                                .font(.caption)
+                                .foregroundColor(.secondary)
 
-                                    Text("\(viewDay.total) ml")
-                                        .font(.title3)
-                                        .bold()
+                            Text("\(viewDay.total) ml")
+                                .font(.title3)
+                                .bold()
 
-                                    Text(viewDay.date.formattedDate(format: "d MMM yyyy"))
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .bold()
-                                }
-                            }
+                            Text(viewDay.date.formattedDate(format: "d MMM yyyy"))
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .bold()
                         }
-                        .cornerRadius(8)
+                        .padding(6)
+                        .frame(width: 120)
+                        .background {
+                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(.systemGray5))
+                        }
+                    }
                 }
                 
                 ForEach(viewDays) { viewDay in
@@ -102,6 +156,8 @@ struct WeeklyChartView: View {
                 }
             }
             .chartXSelection(value: $selectedDay)
+            .chartXScale(domain: selectedWeek.start...selectedWeek.end - 1)
+            .chartXScale(range: .plotDimension(padding: 16))
             .chartXAxis {
                 AxisMarks(values: viewDays.map { $0.date }) { date in
                     AxisGridLine()
@@ -117,23 +173,7 @@ struct WeeklyChartView: View {
         }
         .padding(.horizontal)
         .padding(.bottom)
-        .gesture(
-            DragGesture()
-                .onEnded { value in
-                    let calendar = Calendar.current
-                    let today = calendar.startOfDay(for: Date())
-                    let nextWeek = calendar.date(byAdding: .day, value: 7, to: selectedWeek.start)!
-                    let prevWeek = calendar.date(byAdding: .day, value: -7, to: selectedWeek.start)!
-
-                    if value.translation.width > 50 {
-                        selectedWeek = calendar.dateInterval(of: .weekOfYear, for: prevWeek) ?? selectedWeek
-                    } else if value.translation.width < -50 {
-                        if nextWeek <= today {
-                            selectedWeek = calendar.dateInterval(of: .weekOfYear, for: nextWeek) ?? selectedWeek
-                        }
-                    }
-                }
-        )
+        .animation(.easeInOut, value: selectedWeek)
     }
     
     func generateWeeklyTotals(from data: [WaterData], for week: DateInterval, calendar: Calendar = Calendar.current) -> [ViewDay] {
@@ -167,12 +207,6 @@ struct WeeklyChartView: View {
         let total = data.reduce(0, +)
         let avg = total / data.count
         return avg.localizedString()
-    }
-    
-    struct ViewDay: Identifiable {
-        let id = UUID()
-        let date: Date
-        let total: Int
     }
 }
 

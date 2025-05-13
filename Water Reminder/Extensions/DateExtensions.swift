@@ -52,6 +52,20 @@ extension Date {
         }
     }
     
+    func relativeDayDescription() -> String {
+        let calendar = Calendar.current
+        let today = calendar.startOfDay(for: Date())
+        let yesterday = calendar.date(byAdding: .day, value: -1, to: today)!
+        
+        if calendar.isDate(self, inSameDayAs: today) {
+            return "Today"
+        } else if calendar.isDate(self, inSameDayAs: yesterday) {
+            return "Yesterday"
+        } else {
+            return self.formattedDate(format: "d MMM yyyy EEEE")
+        }
+    }
+    
     static func weekdaySymbol(for weekday: Int) -> String {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: preferred)

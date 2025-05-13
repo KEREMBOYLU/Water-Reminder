@@ -11,34 +11,90 @@ import Charts
 struct DailyChartView: View {
     let data = WaterData.MOCK_WATER_DATA
 
-    @State private var selectedDate = Calendar.current.startOfDay(for: Date())
+    @State private var selectedDay = Calendar.current.startOfDay(for: Date())
     @State private var selectedHour: Int? = nil
     
-    var body: some View {
-        let calendar = Calendar.current
-        let todayData = data.filter { calendar.isDate($0.date, inSameDayAs: selectedDate) }
-        
-        let hourlyTotals = Dictionary(grouping: todayData, by: { calendar.component(.hour, from: $0.date) })
+    struct ViewHour: Identifiable {
+        let id = UUID()
+        let hour: Int
+        let total: Int
+    }
+    
+    var todayData: [WaterData] {
+        data.filter { Calendar.current.isDate($0.date, inSameDayAs: selectedDay) }
+    }
+
+    var hourlyTotals: [ViewHour] {
+        Dictionary(grouping: todayData, by: { Calendar.current.component(.hour, from: $0.date) })
             .map { hour, entries in
-                (hour: hour, total: entries.reduce(0) { $0 + $1.amount })
+                ViewHour(hour: hour, total: entries.reduce(0) { $0 + $1.amount })
             }
             .sorted(by: { $0.hour < $1.hour })
+    }
+    
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 8, style: .continuous)
+                .fill(Color(.systemGray5))
+
+            HStack {
+                Button(action: {
+                    selectedDay = Calendar.current.date(byAdding: .day, value: -1, to: selectedDay) ?? selectedDay
+                }) {
+                    Image(systemName: "chevron.left")
+                        .foregroundColor(.secondary)
+                        .font(.title3)
+                        .padding()
+                }
+                
+                Divider()
+                    .frame(width: 1, height: 15)
+                    .background(Color.gray.opacity(0.5))
+
+                Spacer()
+
+                Text(selectedDay.relativeDayDescription())
+                    .font(.subheadline)
+                    .bold()
+
+                Spacer()
+                
+                Divider()
+                    .frame(width: 1, height: 15)
+                    .background(Color.gray.opacity(0.5))
+
+                let today = Calendar.current.startOfDay(for: Date())
+                let isFutureDay = Calendar.current.isDate(selectedDay, inSameDayAs: today) || selectedDay > today
+
+                Button(action: {
+                    if !isFutureDay {
+                        selectedDay = Calendar.current.date(byAdding: .day, value: 1, to: selectedDay) ?? selectedDay
+                    }
+                }) {
+                    Image(systemName: "chevron.right")
+                        .foregroundColor(isFutureDay ? .gray : .secondary)
+                        .font(.title3)
+                        .padding()
+                }
+            }
+            .padding(.vertical, 2)
+            .padding(.horizontal, 8)
+        }
         
-        return VStack(alignment: .leading, spacing: 8){
+        .frame(height: 30)
+        .clipShape(RoundedRectangle(cornerRadius: 8, style: .continuous))
+        .padding(.horizontal)
+        
+        VStack(alignment: .leading, spacing: 8){
             VStack(alignment: .leading, spacing: 4) {
                 if todayData.isEmpty{
                     
-                    Text("")
+                    Text(" ")
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
                     Text("No Data")
                         .font(.title)
-                        .bold()
-                    
-                    Text(selectedDate.formattedDate())
-                        .foregroundColor(.gray)
-                        .font(.subheadline)
                         .bold()
                     
                 } else if selectedHour != nil {
@@ -48,8 +104,7 @@ struct DailyChartView: View {
                     Text(" ")
                         .font(.title)
                         .bold()
-                    Text(" ")
-                        .font(.subheadline)
+                    
                 } else {
                     let totalAmount = todayData.reduce(0) { $0 + $1.amount }
                     
@@ -61,46 +116,47 @@ struct DailyChartView: View {
                         .font(.title)
                         .bold()
                     
-                    Text(selectedDate.formattedDate())
-                        .font(.subheadline)
-                        .foregroundColor(.gray)
-                        .bold()
-                    
                 }
             }
-            .padding(.bottom, 4)
+            .padding(.vertical, 8)
             
             Chart {
                 
-                if let selectedHour {
+                if let selectedHour,
+                   let entry = hourlyTotals.first(where: { $0.hour == selectedHour }),
+                   entry.total > 0 {
                     RuleMark(x: .value("Selected Hour", selectedHour))
                         .foregroundStyle(.secondary)
+                        .zIndex(-10)
+                        .offset(yStart: -10)
                         .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                            if let entry = hourlyTotals.first(where: { $0.hour == selectedHour }) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text("TOTAL")
-                                        .font(.caption)
-                                        .foregroundColor(.secondary)
+                            let hourDate = Calendar.current.date(bySettingHour: entry.hour, minute: 0, second: 0, of: selectedDay)!
+                            let nextHourDate = Calendar.current.date(bySettingHour: (entry.hour + 1) % 24, minute: 0, second: 0, of: selectedDay)!
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TOTAL")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
 
-                                    Text("\(entry.total.localizedString()) ml")
-                                        .font(.title3)
-                                        .bold()
+                                Text("\(entry.total.localizedString()) ml")
+                                    .font(.title3)
+                                    .bold()
 
-                                    Text("\(selectedDate.formattedDate(format: "d MMM EEE")) \(formattedHourRange(for: entry.hour))")
-                                        .font(.caption)
-                                        .foregroundColor(.gray)
-                                        .bold()
-                                }
-                                .padding(6)
-                                .cornerRadius(8)
-                                .frame(width: 120)
-                        
+                                Text("\(selectedDay.formattedDate(format: "d MMM EEE")) \(hourDate.formattedDate(format: "HH"))–\(nextHourDate.formattedDate(format: "HH"))")
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                    .bold()
+                            }
+                            .padding(6)
+                            .frame(width: 120)
+                            .background {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .fill(Color(.systemGray5))
                             }
                         }
                 }
                 
                 
-                ForEach(hourlyTotals, id: \.hour) { entry in
+                ForEach(hourlyTotals) { entry in
                     BarMark(
                         x: .value("hour", entry.hour),
                         y: .value("ml", entry.total)
@@ -116,7 +172,8 @@ struct DailyChartView: View {
                     AxisTick()
                     AxisValueLabel {
                         if let hour = value.as(Int.self) {
-                            Text(formattedHour(hour))
+                            let hourDate = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date())!
+                            Text(hourDate.formattedDate(format: "HH"))
                                 .foregroundColor(.gray)
                                 .font(.caption2)
                         }
@@ -125,51 +182,13 @@ struct DailyChartView: View {
             }
             .chartXScale(domain: 0...23)
             .chartXScale(range: .plotDimension(padding: 16))
-            .padding(.top, 8)
             .frame(height: 220)
         }
         .padding(.horizontal)
-        
         .padding(.bottom)
-        .animation(.easeInOut, value: selectedDate)
-        .gesture(
-            DragGesture()
-                .onEnded { value in
-                    if value.translation.width > 50 {
-                        // sağa kaydır → geçmiş güne git
-                        if let newDate = calendar.date(byAdding: .day, value: -1, to: selectedDate) {
-                            withAnimation(.easeInOut) {
-                                selectedDate = newDate
-                                selectedHour = nil
-                            }
-                        }
-                    } else if value.translation.width < -50 {
-                        // sola kaydır → ileriye git (bugüne kadar)
-                        if let newDate = calendar.date(byAdding: .day, value: 1, to: selectedDate),
-                           newDate <= Calendar.current.startOfDay(for: Date()) {
-                            withAnimation(.easeInOut) {
-                                selectedDate = newDate
-                                selectedHour = nil
-                            }
-                        }
-                    }
-                }
-        )
+        .animation(.easeInOut, value: selectedDay)
     }
     
-    func formattedHour(_ hour: Int) -> String {
-        let date = Calendar.current.date(bySettingHour: hour, minute: 0, second: 0, of: Date())!
-        let formatter = DateFormatter()
-        formatter.locale = Locale(identifier: preferred)
-        formatter.dateFormat = DateFormatter.dateFormat(fromTemplate: "j", options: 0, locale: formatter.locale)
-        return formatter.string(from: date)
-    }
-    
-    func formattedHourRange(for hour: Int) -> String {
-        let start = formattedHour(hour)
-        let end = formattedHour((hour + 1) % 24)
-        return "\(start)–\(end)"
-    }
 }
 
 #Preview {
