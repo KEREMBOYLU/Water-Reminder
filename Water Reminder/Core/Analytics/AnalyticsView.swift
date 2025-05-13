@@ -69,6 +69,9 @@ struct AnalyticsView: View {
                 if selectedRange == "Hafta" {
                     WeeklyChartView()
                 }
+                if selectedRange == "Ay" {
+                    MonthlyChartView()
+                }
                 
                 Spacer()
             }
