@@ -72,6 +72,9 @@ struct AnalyticsView: View {
                 if selectedRange == "Ay" {
                     MonthlyChartView()
                 }
+                if selectedRange == "Yıl" {
+                    YearlyChartView()
+                }
                 
                 Spacer()
             }

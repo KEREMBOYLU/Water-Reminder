@@ -11,7 +11,10 @@ import Charts
 
 struct WeeklyChartView: View {
 
-    @State private var selectedWeek: DateInterval = Calendar.current.dateInterval(of: .weekOfYear, for: Date())!
+    @State private var selectedWeek: DateInterval = Calendar.current.dateInterval(
+        of: .weekOfYear,
+        for: Date()
+    )!
     @State private var selectedDay: Date? = nil
     
     struct ViewDay: Identifiable {
@@ -35,15 +38,21 @@ struct WeeklyChartView: View {
                 .fill(Color(.systemGray5))
 
             HStack {
-                Button(action: {
-                    let prevWeek = Calendar.current.date(byAdding: .weekOfYear, value: -1, to: selectedWeek.start)!
-                    selectedWeek = Calendar.current.dateInterval(of: .weekOfYear, for: prevWeek) ?? selectedWeek
-                }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.secondary)
-                        .font(.title3)
-                        .padding()
-                }
+                Button(
+action: {
+    let prevWeek = Calendar.current.date(
+        byAdding: .weekOfYear,
+        value: -1,
+        to: selectedWeek.start
+    )!
+    selectedWeek = Calendar.current
+        .dateInterval(of: .weekOfYear, for: prevWeek) ?? selectedWeek
+}) {
+    Image(systemName: "chevron.left")
+        .foregroundColor(.secondary)
+        .font(.title3)
+        .padding()
+}
                 
                 Divider()
                     .frame(width: 1, height: 15)
@@ -51,9 +60,15 @@ struct WeeklyChartView: View {
 
                 Spacer()
 
-                Text(Date.formattedRange(from: selectedWeek.start, to: selectedWeek.end - 1))
-                    .font(.subheadline)
-                    .bold()
+                Text(
+                    Date
+                        .formattedRange(
+                            from: selectedWeek.start,
+                            to: selectedWeek.end - 1
+                        )
+                )
+                .font(.subheadline)
+                .bold()
 
                 Spacer()
                 
@@ -62,19 +77,28 @@ struct WeeklyChartView: View {
                     .background(Color.gray.opacity(0.5))
 
                 let today = Calendar.current.startOfDay(for: Date())
-                let nextWeek = Calendar.current.date(byAdding: .weekOfYear, value: 1, to: selectedWeek.start)!
+                let nextWeek = Calendar.current.date(
+                    byAdding: .weekOfYear,
+                    value: 1,
+                    to: selectedWeek.start
+                )!
                 let isFutureWeek = nextWeek > today
 
-                Button(action: {
+                Button(
+action: {
                     if !isFutureWeek {
-                        selectedWeek = Calendar.current.dateInterval(of: .weekOfYear, for: nextWeek) ?? selectedWeek
+                        selectedWeek = Calendar.current
+                            .dateInterval(
+                                of: .weekOfYear,
+                                for: nextWeek
+                            ) ?? selectedWeek
                     }
-                }) {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(isFutureWeek ? .gray : .secondary)
-                        .font(.title3)
-                        .padding()
-                }
+}) {
+    Image(systemName: "chevron.right")
+        .foregroundColor(isFutureWeek ? .gray : .secondary)
+        .font(.title3)
+        .padding()
+}
             }
             .padding(.vertical, 2)
             .padding(.horizontal, 8)
@@ -116,7 +140,12 @@ struct WeeklyChartView: View {
             
             Chart {
                 if let selected = selectedDay,
-                   let viewDay = viewDays.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selected) }),
+                   let viewDay = viewDays.first(
+                    where: { Calendar.current.isDate(
+                        $0.date,
+                        inSameDayAs: selected
+                    )
+                    }),
                    viewDay.total > 0 {
                     RuleMark(x: .value("Selected Day", selected, unit: .day))
                         .zIndex(-10)
@@ -125,26 +154,33 @@ struct WeeklyChartView: View {
                         .annotation(position: .top,
                                     spacing: 0,
                                     overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TOTAL")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TOTAL")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
 
-                            Text("\(viewDay.total) ml")
-                                .font(.title3)
-                                .bold()
+                                Text("\(viewDay.total) ml")
+                                    .font(.title3)
+                                    .bold()
 
-                            Text(viewDay.date.formattedDate(format: "d MMM yyyy"))
+                                Text(
+                                    viewDay.date
+                                        .formattedDate(format: "d MMM yyyy")
+                                )
                                 .font(.caption)
                                 .foregroundColor(.gray)
                                 .bold()
+                            }
+                            .padding(6)
+                            .frame(width: 120)
+                            .background {
+                                RoundedRectangle(
+                                    cornerRadius: 12,
+                                    style: .continuous
+                                )
+                                .fill(Color(.systemGray5))
+                            }
                         }
-                        .padding(6)
-                        .frame(width: 120)
-                        .background {
-                            RoundedRectangle(cornerRadius: 12, style: .continuous).fill(Color(.systemGray5))
-                        }
-                    }
                 }
                 
                 ForEach(viewDays) { viewDay in
@@ -152,7 +188,13 @@ struct WeeklyChartView: View {
                             y: .value("Total", viewDay.total)
                     )
                     .foregroundStyle(Color("ChartColor"))
-                    .opacity(selectedDay == nil || Calendar.current.isDate(selectedDay!, inSameDayAs: viewDay.date) ? 1 : 0.3)
+                    .opacity(
+                        selectedDay == nil || Calendar.current
+                            .isDate(
+                                selectedDay!,
+                                inSameDayAs: viewDay.date
+                            ) ? 1 : 0.3
+                    )
                 }
             }
             .chartXSelection(value: $selectedDay)
@@ -194,10 +236,14 @@ struct WeeklyChartView: View {
     func hasData(in week: DateInterval, data: [WaterData]) -> Bool {
         let calendar = Calendar.current
         let weekStart = calendar.startOfDay(for: week.start)
-        let days = (0..<7).compactMap { calendar.date(byAdding: .day, value: $0, to: weekStart) }
+        let days = (0..<7).compactMap {
+            calendar.date(byAdding: .day, value: $0, to: weekStart)
+        }
         
         let total = days.reduce(0) { sum, date in
-            sum + data.filter { calendar.isDate($0.date, inSameDayAs: date) }.reduce(0) { $0 + $1.amount }
+            sum + data
+                .filter { calendar.isDate($0.date, inSameDayAs: date) }
+                .reduce(0) { $0 + $1.amount }
         }
         return total > 0
     }

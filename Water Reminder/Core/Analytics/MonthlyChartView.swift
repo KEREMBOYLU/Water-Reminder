@@ -12,7 +12,10 @@ import Charts
 struct MonthlyChartView: View {
     let data = WaterData.MOCK_WATER_DATA
 
-    @State private var selectedMonth: DateInterval = Calendar.current.dateInterval(of: .month, for: Date())!
+    @State private var selectedMonth: DateInterval = Calendar.current.dateInterval(
+        of: .month,
+        for: Date()
+    )!
     
     @State private var selectedDay: Date? = nil
     
@@ -28,7 +31,7 @@ struct MonthlyChartView: View {
     }
     
     var viewDays: [ViewDay] {
-        generateMonthlyTotals(from: WaterData.MOCK_WATER_DATA, for: selectedMonth)
+        generateMonthlyTotals(from: data, for: selectedMonth)
     }
 
     var body: some View {
@@ -37,15 +40,21 @@ struct MonthlyChartView: View {
                 .fill(Color(.systemGray5))
 
             HStack {
-                Button(action: {
-                    let prevMonth = Calendar.current.date(byAdding: .month, value: -1, to: selectedMonth.start)!
-                    selectedMonth = Calendar.current.dateInterval(of: .month, for: prevMonth) ?? selectedMonth
-                }) {
-                    Image(systemName: "chevron.left")
-                        .foregroundColor(.secondary)
-                        .font(.title3)
-                        .padding()
-                }
+                Button(
+action: {
+    let prevMonth = Calendar.current.date(
+        byAdding: .month,
+        value: -1,
+        to: selectedMonth.start
+    )!
+    selectedMonth = Calendar.current
+        .dateInterval(of: .month, for: prevMonth) ?? selectedMonth
+}) {
+    Image(systemName: "chevron.left")
+        .foregroundColor(.secondary)
+        .font(.title3)
+        .padding()
+}
                 
                 Divider()
                     .frame(width: 1, height: 15)
@@ -53,9 +62,15 @@ struct MonthlyChartView: View {
 
                 Spacer()
 
-                Text(Date.formattedRange(from: selectedMonth.start, to: selectedMonth.end - 1))
-                    .font(.subheadline)
-                    .bold()
+                Text(
+                    Date
+                        .formattedRange(
+                            from: selectedMonth.start,
+                            to: selectedMonth.end - 1
+                        )
+                )
+                .font(.subheadline)
+                .bold()
 
                 Spacer()
                 
@@ -64,19 +79,28 @@ struct MonthlyChartView: View {
                     .background(Color.gray.opacity(0.5))
 
                 let today = Calendar.current.startOfDay(for: Date())
-                let nextMonth = Calendar.current.date(byAdding: .month, value: 1, to: selectedMonth.start)!
+                let nextMonth = Calendar.current.date(
+                    byAdding: .month,
+                    value: 1,
+                    to: selectedMonth.start
+                )!
                 let isFutureMonth = nextMonth > today
 
-                Button(action: {
+                Button(
+action: {
                     if !isFutureMonth {
-                        selectedMonth = Calendar.current.dateInterval(of: .month, for: nextMonth) ?? selectedMonth
+                        selectedMonth = Calendar.current
+                            .dateInterval(
+                                of: .month,
+                                for: nextMonth
+                            ) ?? selectedMonth
                     }
-                }) {
-                    Image(systemName: "chevron.right")
-                        .foregroundColor(isFutureMonth ? .gray : .secondary)
-                        .font(.title3)
-                        .padding()
-                }
+}) {
+    Image(systemName: "chevron.right")
+        .foregroundColor(isFutureMonth ? .gray : .secondary)
+        .font(.title3)
+        .padding()
+}
             }
             .padding(.vertical, 2)
             .padding(.horizontal, 8)
@@ -119,13 +143,24 @@ struct MonthlyChartView: View {
             
             Chart {
                 if let selected = selectedDay,
-                   let viewDay = viewDays.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selected) }),
+                   let viewDay = viewDays.first(
+                    where: { Calendar.current.isDate(
+                        $0.date,
+                        inSameDayAs: selected
+                    )
+                    }),
                    viewDay.total > 0 {
                     RuleMark(x: .value("Selected Day", selected, unit: .day))
                         .zIndex(-10)
                         .offset(yStart: -10)
                         .foregroundStyle(.secondary)
-                        .annotation(position: .top, overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                        .annotation(
+                            position: .top,
+                            overflowResolution: .init(
+                                x: .fit(to: .chart),
+                                y: .disabled
+                            )
+                        ) {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text("TOTAL")
                                     .font(.caption)
@@ -135,16 +170,22 @@ struct MonthlyChartView: View {
                                     .font(.title3)
                                     .bold()
 
-                                Text(viewDay.date.formattedDate(format: "d MMM yyyy EEE"))
-                                    .font(.caption)
-                                    .foregroundColor(.gray)
-                                    .bold()
+                                Text(
+                                    viewDay.date
+                                        .formattedDate(format: "d MMM yyyy EEE")
+                                )
+                                .font(.caption)
+                                .foregroundColor(.gray)
+                                .bold()
                             }
                             .padding(6)
                             .frame(width: 140)
                             .background {
-                                RoundedRectangle(cornerRadius: 12, style: .continuous)
-                                    .fill(Color(.systemGray5))
+                                RoundedRectangle(
+                                    cornerRadius: 12,
+                                    style: .continuous
+                                )
+                                .fill(Color(.systemGray5))
                             }
                         }
                 }
@@ -155,7 +196,13 @@ struct MonthlyChartView: View {
                         y: .value("Total", viewDay.total)
                     )
                     .foregroundStyle(Color("ChartColor"))
-                    .opacity(selectedDay == nil || Calendar.current.isDate(selectedDay!, inSameDayAs: viewDay.date) ? 1 : 0.3)
+                    .opacity(
+                        selectedDay == nil || Calendar.current
+                            .isDate(
+                                selectedDay!,
+                                inSameDayAs: viewDay.date
+                            ) ? 1 : 0.3
+                    )
                 }
             }
             .chartXSelection(value: $selectedDay)
@@ -185,11 +232,19 @@ struct MonthlyChartView: View {
     
     func generateMonthlyTotals(from data: [WaterData], for month: DateInterval, calendar: Calendar = Calendar.current) -> [ViewDay] {
         let monthStart = calendar.startOfDay(for: month.start)
-        let range: Range<Int> = calendar.range(of: .day, in: .month, for: monthStart) ?? (1..<32)
+        let range: Range<Int> = calendar.range(of: .day, in: .month, for: monthStart) ?? (
+            1..<32
+        )
 
         return range.compactMap { day -> ViewDay? in
-            guard let date = calendar.date(bySetting: .day, value: day, of: monthStart) else { return nil }
-            let total = data.filter { calendar.isDate($0.date, inSameDayAs: date) }.reduce(0) { $0 + $1.amount }
+            guard let date = calendar.date(bySetting: .day, value: day, of: monthStart) else {
+                return nil
+            }
+            let total = data.filter { calendar.isDate($0.date, inSameDayAs: date) }.reduce(
+                0
+            ) {
+                $0 + $1.amount
+            }
             return ViewDay(date: date, total: total)
         }
     }
@@ -197,13 +252,19 @@ struct MonthlyChartView: View {
     func hasData(in month: DateInterval, data: [WaterData]) -> Bool {
         let calendar = Calendar.current
         let monthStart = calendar.startOfDay(for: month.start)
-        let range = calendar.range(of: .day, in: .month, for: monthStart) ?? 1..<32
+        let range = calendar.range(
+            of: .day,
+            in: .month,
+            for: monthStart
+        ) ?? 1..<32
         let days = range.compactMap { day -> Date? in
             calendar.date(bySetting: .day, value: day, of: monthStart)
         }
 
         let total = days.reduce(0) { sum, date in
-            sum + data.filter { calendar.isDate($0.date, inSameDayAs: date) }.reduce(0) { $0 + $1.amount }
+            sum + data
+                .filter { calendar.isDate($0.date, inSameDayAs: date) }
+                .reduce(0) { $0 + $1.amount }
         }
         return total > 0
     }
