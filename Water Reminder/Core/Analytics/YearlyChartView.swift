@@ -10,7 +10,7 @@ import Charts
 
 struct YearlyChartView: View {
     
-    let data = WaterData.MOCK_WATER_DATA
+    @Binding var data: [WaterData]
     
     @State private var selectedYear: Date = Calendar.current.date(
         from: Calendar.current.dateComponents([.year], from: Date())
@@ -298,5 +298,5 @@ where:{
 }
 
 #Preview {
-    YearlyChartView()
+    YearlyChartView(data: .constant(WaterData.MOCK_WATER_DATA))
 }

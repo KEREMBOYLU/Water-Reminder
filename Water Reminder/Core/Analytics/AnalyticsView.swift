@@ -8,7 +8,9 @@
 import SwiftUI
 
 struct AnalyticsView: View {
+    @Binding var waterData: [WaterData]
     @State private var selectedRange = "Gün"
+    
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
@@ -64,16 +66,16 @@ struct AnalyticsView: View {
                 
                 // Daily chart view placeholder
                 if selectedRange == "Gün" {
-                    DailyChartView()
+                    DailyChartView(data: $waterData)
                 }
                 if selectedRange == "Hafta" {
-                    WeeklyChartView()
+                    WeeklyChartView(data: $waterData)
                 }
                 if selectedRange == "Ay" {
-                    MonthlyChartView()
+                    MonthlyChartView(data: $waterData)
                 }
                 if selectedRange == "Yıl" {
-                    YearlyChartView()
+                    YearlyChartView(data: $waterData)
                 }
                 
                 Spacer()
@@ -84,5 +86,5 @@ struct AnalyticsView: View {
 }
 
 #Preview {
-    AnalyticsView()
+    AnalyticsView(waterData: .constant(WaterData.MOCK_WATER_DATA))
 }

@@ -11,6 +11,8 @@ import Charts
 
 struct WeeklyChartView: View {
 
+    @Binding var data: [WaterData]
+
     @State private var selectedWeek: DateInterval = Calendar.current.dateInterval(
         of: .weekOfYear,
         for: Date()
@@ -29,7 +31,7 @@ struct WeeklyChartView: View {
     }
     
     var viewDays: [ViewDay] {
-        generateWeeklyTotals(from: WaterData.MOCK_WATER_DATA, for: selectedWeek)
+        generateWeeklyTotals(from: data, for: selectedWeek)
     }
     
     var body: some View {
@@ -109,7 +111,7 @@ action: {
 
         VStack(alignment: .leading, spacing: 8) {
             VStack(alignment: .leading, spacing: 4) {
-                if !hasData(in: selectedWeek, data: WaterData.MOCK_WATER_DATA){
+                if !hasData(in: selectedWeek, data: data){
                     Text(" ")
                         .font(.caption)
                         .foregroundColor(.secondary)
@@ -257,5 +259,5 @@ action: {
 }
 
 #Preview {
-    WeeklyChartView()
+    WeeklyChartView(data: .constant(WaterData.MOCK_WATER_DATA))
 }

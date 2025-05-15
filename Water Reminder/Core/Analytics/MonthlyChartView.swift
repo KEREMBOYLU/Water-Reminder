@@ -10,7 +10,7 @@ import Charts
 
 
 struct MonthlyChartView: View {
-    let data = WaterData.MOCK_WATER_DATA
+    @Binding var data: [WaterData]
 
     @State private var selectedMonth: DateInterval = Calendar.current.dateInterval(
         of: .month,
@@ -279,5 +279,5 @@ action: {
 
 
 #Preview {
-    MonthlyChartView()
+    MonthlyChartView(data: .constant(WaterData.MOCK_WATER_DATA))
 }

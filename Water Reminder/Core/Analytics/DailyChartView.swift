@@ -9,7 +9,7 @@ import SwiftUI
 import Charts
 
 struct DailyChartView: View {
-    let data = WaterData.MOCK_WATER_DATA
+    @Binding var data: [WaterData]
     
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
     @State private var selectedHour: Int? = nil
@@ -244,6 +244,6 @@ action: {
 }
 
 #Preview {
-    DailyChartView()
+    DailyChartView(data: .constant(WaterData.MOCK_WATER_DATA))
     
 }
