@@ -8,13 +8,15 @@
 import SwiftUI
 
 struct MainTabView: View {
+    @State private var waterData: [WaterData] = []
+    
     var body: some View {
         TabView{
-            AnalyticsView()
+            AnalyticsView(waterData: $waterData)
                 .tabItem{
                     Image(systemName: "chart.bar.xaxis")
                 }
-            Text("Home")
+            HomeView(waterData: $waterData)
                 .tabItem{
                     Image(systemName: "waterbottle")
                 }
