@@ -6,113 +6,148 @@
 //
 
 import SwiftUI
+import CoreMotion
+
+class MotionManager: ObservableObject {
+    private var motionManager = CMMotionManager()
+    @Published var rotation: Double = 0.0
+    private var lastRawAngle: Double = 0.0
+    private var totalRotation: Double = 0.0
+
+    init() {
+        motionManager.deviceMotionUpdateInterval = 1 / 60
+        motionManager.startDeviceMotionUpdates(to: .main) { [weak self] data, _ in
+            guard let self = self, let data = data else { return }
+
+            let gravity = data.gravity
+            let rawAngle = atan2(gravity.x, -gravity.y)
+
+            // Açı farkını hesapla
+            var delta = rawAngle - self.lastRawAngle
+
+            // Açı farkını normalize et (-π ile π arasına getir)
+            if delta > .pi {
+                delta -= 2 * .pi
+            } else if delta < -.pi {
+                delta += 2 * .pi
+            }
+
+            // Birikimli toplamı güncelle
+            self.totalRotation += delta
+            self.lastRawAngle = rawAngle
+
+            // Animasyonlu olarak güncelle
+            DispatchQueue.main.async {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    self.rotation = self.totalRotation
+                }
+            }
+        }
+    }
+}
 
 struct HomeView: View {
     @Binding var waterData: [WaterData]
     let targetAmount: Int = 4000
 
-    @State var progress: CGFloat = 0.5
+    @State var progress: CGFloat = 0
     @State var startAnimation: CGFloat = 0
+    @State private var showCustomInput = false
+    @State private var customAmount = ""
+    @StateObject var motionManager = MotionManager()
+    @State private var time: Double = 0.0
     
     var body: some View {
+        let today: Date = Date()
         VStack {
-            HStack {
-                VStack(alignment: .leading) {
-                    Text("14")
-                        .font(.largeTitle)
+            
+            HStack(alignment: .center) {
+                HStack(spacing: 12) {
+                    Text(today.formattedDate(format: "d MMMM"))
+                        .font(.headline)
+                        .foregroundColor(.primary)
+
+                    Text(today.formattedDate(format: "EEEE"))
+                        .font(.headline)
+                        .foregroundColor(Color("WaterColor"))
                         .bold()
-                    Text("Çarşamba")
-                        .font(.caption)
-                        .padding(.top, -4)
-                        .foregroundColor(.white)
-                        .padding(4)
-                        .background(Color.blue)
-                        .cornerRadius(4)
-                    Text("6:56 ÖS")
-                        .font(.caption)
+
+                    Text(today.formattedDate(format: "HH:mm"))
+                        .font(.subheadline)
                         .foregroundColor(.gray)
                 }
+                .padding(8)
+                .frame(height: 32)
+                .background(Color(.systemGray6))
+                .cornerRadius(12)
+                
+
                 Spacer()
-                Text("6:56")
-                    .font(.title)
+
+                Button(action: {
+                    // buton aksiyonu buraya
+                }) {
+                    Image(systemName: "square.and.pencil")
+                        .font(.title3)
+                        .foregroundColor(Color("WaterColor"))
+                        .frame(width: 32, height: 32)
+                        .padding(4)
+                        .background(
+                            Rectangle()
+                                .fill(Color("WaterColor").opacity(0.15))
+                                .cornerRadius(18)
+                        )
+                }
+                
+            }
+            .padding(.horizontal,4)
+            .shadow(color: Color("WaterColor"), radius: 3, x: 0, y: 1)
+            
+            Spacer()
+
+            
+            WaterDropView(progress: $progress, startAnimation: $startAnimation, rotation: motionManager.rotation)
+                .frame(height: 350)
+                .padding(.bottom)
+                .shadow(color: Color("WaterColor").opacity(0.5), radius: 3, x: 0, y: 1)
+            
+            HStack {
+                let today = Calendar.current.startOfDay(for: Date())
+                let totalToday = waterData
+                    .filter { Calendar.current.isDate($0.date, inSameDayAs: today) }
+                    .reduce(0) { $0 + $1.amount }
+                let remaining = max(targetAmount - totalToday, 0)
+                let progressPercent = Int((CGFloat(totalToday) / CGFloat(targetAmount)) * 100)
+
+                Text("\(totalToday)ml • \(progressPercent)%")
+                    .font(.subheadline)
+                    .bold()
+                Spacer()
+                Text("Kalan: \(remaining.localizedString())ml")
+                    .font(.subheadline)
                     .bold()
             }
             .padding(.horizontal)
-            .padding(.bottom, 30)
             
+
+            let totalToday = waterData
+                .filter { Calendar.current.isDate($0.date, inSameDayAs: Calendar.current.startOfDay(for: Date())) }
+                .reduce(0) { $0 + $1.amount }
+
+            ProgressView(value: CGFloat(totalToday) / CGFloat(targetAmount))
+                .progressViewStyle(LinearProgressViewStyle(tint: Color("WaterColor")))
+                .frame(height: 6)
+                .clipShape(Capsule())
+                .padding(.bottom, 48)
+                .padding(.horizontal)
+                .shadow(color: Color("WaterColor"), radius: 3, x: 0, y: 1)
+
             
-            GeometryReader{ proxy in
-                let size = proxy.size
+            HStack(spacing: 20){
                 
-                ZStack{
-                    Image(systemName: "drop.fill")
-                        .resizable()
-                        .renderingMode(.template)
-                        .aspectRatio(contentMode: .fit)
-                        .foregroundStyle(Color("BackgroundColor"))
-                    
-                        .scaleEffect(x: 1.1,y: 1)
-                    
-                    WaterWave(progress: progress, waveHeight: 0.05, offset: startAnimation)
-                        .fill(Color("WaterColor"))
-                        .overlay(content: {
-                            ZStack{
-                                Circle()
-                                    .fill(Color("BackgroundColor").opacity(0.1))
-                                    .frame(width: 15, height: 15)
-                                    .offset(x: -20)
-                                Circle()
-                                    .fill(Color("BackgroundColor").opacity(0.1))
-                                    .frame(width: 15, height: 15)
-                                    .offset(x: 20, y: 30)
-                                Circle()
-                                    .fill(Color("BackgroundColor").opacity(0.1))
-                                    .frame(width: 25, height: 25)
-                                    .offset(x: 10, y: -70)
-                                Circle()
-                                    .fill(Color("BackgroundColor").opacity(0.1))
-                                    .frame(width: 25, height: 25)
-                                    .offset(x: -50, y: 70)
-                                Circle()
-                                    .fill(Color("BackgroundColor").opacity(0.1))
-                                    .frame(width: 10, height: 10)
-                                    .offset(x: 25, y: -60)
-                                Circle()
-                                    .fill(Color("BackgroundColor").opacity(0.1))
-                                    .frame(width: 10, height: 10)
-                                    .offset(x: 50, y: 70)
-
-                            }
-                        })
-                    
-                        .mask {
-                            Image(systemName: "drop.fill")
-                                .resizable()
-                                .aspectRatio(contentMode: .fit)
-                                .padding(20)
-                        }
-                        
-                }
-                .frame(width: size.width, height: size.height,alignment: .center)
-                .onAppear {
-                    let today = Calendar.current.startOfDay(for: Date())
-                    let totalToday = waterData
-                        .filter { Calendar.current.isDate($0.date, inSameDayAs: today) }
-                        .reduce(0) { $0 + $1.amount }
-                    progress = min(CGFloat(totalToday) / CGFloat(targetAmount), 1.0)
-
-                    withAnimation(.linear(duration: 2).repeatForever(autoreverses: false)) {
-                        startAnimation = size.width
-                    }
-                }
-            }
-            .frame(height: 350)
-            .padding(.bottom, 40)
-            
-            HStack(spacing: 40) {
                 Button(action: {
                     let now = Date()
-                    let newEntry = WaterData(id: UUID().uuidString, date: now, amount: 250)
+                    let newEntry = WaterData(id: UUID().uuidString, date: now, amount: 100)
                     waterData.append(newEntry)
                     
                     let today = Calendar.current.startOfDay(for: now)
@@ -121,74 +156,164 @@ struct HomeView: View {
                         .reduce(0) { $0 + $1.amount }
                     progress = min(CGFloat(totalToday) / CGFloat(targetAmount), 1.0)
                 }) {
-                    Image(systemName: "plus.circle.fill")
-                        .resizable()
-                        .frame(width: 60, height: 60)
-                        .foregroundColor(Color("WaterColor"))
-                    
+                    ZStack(alignment: .bottomTrailing) {
+                        Image("WaterGlass100")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Circle().fill(Color("WaterColor")))
+                            .frame(width: 60, height: 60)
+
+                        Text("+100ml")
+                            .font(.caption2)
+                            .bold()
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.white)
+                            .foregroundColor(.black)
+                            .clipShape(Capsule())
+                            .offset(x: 5, y: 5)
+                    }
+                    .shadow(radius: 2)
+
                 }
                 
-                Button(action: {}) {
-                    Image(systemName: "list.bullet")
-                        .resizable()
-                        .frame(width: 30, height: 30)
-                        .foregroundColor(.gray)
+                Button(action: {
+                    let now = Date()
+                    let newEntry = WaterData(id: UUID().uuidString, date: now, amount: 200)
+                    waterData.append(newEntry)
+                    
+                    let today = Calendar.current.startOfDay(for: now)
+                    let totalToday = waterData
+                        .filter { Calendar.current.isDate($0.date, inSameDayAs: today) }
+                        .reduce(0) { $0 + $1.amount }
+                    progress = min(CGFloat(totalToday) / CGFloat(targetAmount), 1.0)
+                }) {
+                    ZStack(alignment: .bottomTrailing) {
+                        Image("WaterGlass200")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Circle().fill(Color("WaterColor")))
+                            .frame(width: 60, height: 60)
+
+                        Text("+200ml")
+                            .font(.caption2)
+                            .bold()
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.white)
+                            .foregroundColor(.black)
+                            .clipShape(Capsule())
+                            .offset(x: 5, y: 5)
+                    }
+                    .shadow(radius: 2)
+
+                }
+                
+                Button(action: {
+                    let now = Date()
+                    let newEntry = WaterData(id: UUID().uuidString, date: now, amount: 500)
+                    waterData.append(newEntry)
+                    
+                    let today = Calendar.current.startOfDay(for: now)
+                    let totalToday = waterData
+                        .filter { Calendar.current.isDate($0.date, inSameDayAs: today) }
+                        .reduce(0) { $0 + $1.amount }
+                    progress = min(CGFloat(totalToday) / CGFloat(targetAmount), 1.0)
+                }) {
+                    ZStack(alignment: .bottomTrailing) {
+                        Image("WaterBottle500")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Circle().fill(Color("WaterColor")))
+                            .frame(width: 60, height: 60)
+
+                        Text("+500ml")
+                            .font(.caption2)
+                            .bold()
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.white)
+                            .foregroundColor(.black)
+                            .clipShape(Capsule())
+                            .offset(x: 5, y: 5)
+                    }
+                    .shadow(radius: 2)
+
+                }
+                
+                Button(action: {
+                    showCustomInput = true
+                }) {
+                    ZStack(alignment: .bottomTrailing) {
+                        Image(systemName: "plus")
+                            .resizable()
+                            .scaledToFit()
+                            .frame(width: 30, height: 30)
+                            .foregroundColor(.white)
+                            .padding()
+                            .background(Circle().fill(Color("WaterColor")))
+                            .frame(width: 60, height: 60)
+
+                        Text("Manual")
+                            .font(.caption2)
+                            .bold()
+                            .padding(.horizontal, 4)
+                            .padding(.vertical, 2)
+                            .background(Color.white)
+                            .foregroundColor(.black)
+                            .clipShape(Capsule())
+                            .offset(x: 5, y: 5)
+                    }
+                    .shadow(radius: 2)
                 }
             }
-            HStack {
-                Text("0ml • 0%")
-                    .font(.subheadline)
-                    .bold()
-                Spacer()
-                Text("Kalan: 3.824ml")
-                    .font(.subheadline)
-                    .bold()
-            }
-            .padding(.horizontal)
+            .shadow(color: Color("WaterColor"), radius: 3, x: 0, y: 1)
             
-            ProgressView(value: 0.0)
-                .progressViewStyle(LinearProgressViewStyle(tint: .gray))
-                .padding(.horizontal)
+            Spacer()
+            
+//            HStack(spacing: 40) {
+//                Button(action: {
+//                    // Future functionality to be implemented
+//                }) {
+//                    Image(systemName: "pencil")
+//                        .resizable()
+//                        .scaledToFit()
+//                        .frame(width: 30, height: 30)
+//                        .foregroundColor(.white)
+//                        .padding()
+//                        .background(Circle().fill(Color("WaterColor")))
+//                        .frame(width: 60, height: 60)
+//                }
+//
+//            }
+//            .padding()
+            
         }
         .padding()
         .frame(maxWidth: .infinity,maxHeight: .infinity,alignment: .top)
+        .sheet(isPresented: $showCustomInput) {
+            CustomInputSheetView(waterData: $waterData)
+                .presentationDetents([.fraction(0.75)])
+                .presentationCornerRadius(24)
+                .presentationBackground(Color("WaterColor").opacity(0.3))
+        }
+        .onAppear {
+            Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in
+                startAnimation += 1
+            }
+        }
     }
 }
 
 #Preview {
     HomeView(waterData: .constant(WaterData.MOCK_WATER_DATA))
-}
-
-struct WaterWave: Shape {
-    
-    var progress: CGFloat
-    var waveHeight: CGFloat
-    
-    var offset: CGFloat
-    
-    var animatableData: CGFloat {
-        get { offset }
-        set { offset = newValue }
-    }
-    
-    func path(in rect: CGRect) -> Path {
-        return Path{path in
-            path.move(to: .zero)
-            
-            let progressHeight: CGFloat = (1 - progress) * rect.height
-            let height = waveHeight * rect.height
-            
-            for value in stride(from: 0, to: rect.width, by: 2) {
-                let x: CGFloat = value
-                let sine: CGFloat = sin(Angle(degrees:value + offset).radians)
-                let y: CGFloat = progressHeight + height * sine
-                
-                path.addLine(to: CGPoint(x: x, y: y))
-            }
-            
-            path.addLine(to: CGPoint(x: rect.width, y: rect.height))
-            path.addLine(to: CGPoint(x: 0, y: rect.height))
-            
-        }
-    }
 }
