@@ -16,10 +16,10 @@ struct MainTabView: View {
                 .tabItem{
                     Image(systemName: "chart.bar.xaxis")
                 }
-//            HomeView(waterData: $waterData)
-//                .tabItem{
-//                    Image(systemName: "waterbottle")
-//                }
+            HomeView(HydrationData: $HydrationData)
+                .tabItem{
+                    Image(systemName: "waterbottle")
+                }
             Text("Settings")
                 .tabItem{
                     Image(systemName: "gearshape")

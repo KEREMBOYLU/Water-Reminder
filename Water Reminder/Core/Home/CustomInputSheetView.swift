@@ -9,7 +9,7 @@ import SwiftUI
 
 struct CustomInputSheetView: View {
     @Environment(\.dismiss) var dismiss
-    @Binding var waterData: [WaterData]
+    @Binding var hydrationData: [HydrationEntry]
     @State private var inputAmount = ""
     @State private var animateKeypad = false
 
@@ -120,8 +120,8 @@ struct CustomInputSheetView: View {
 
                 Button(action: {
                     if let amount = Int(inputAmount), amount > 0 {
-                        let newEntry = WaterData(id: UUID().uuidString, date: Date(), amount: amount)
-                        waterData.append(newEntry)
+                        let newEntry = HydrationEntry(id: UUID(), date: Date(), amount: amount, type: HydrationType.water)
+                        hydrationData.append(newEntry)
                         dismiss()
                     }
                 }) {
@@ -148,5 +148,5 @@ struct CustomInputSheetView: View {
 }
 
 #Preview {
-    CustomInputSheetView(waterData: .constant(WaterData.MOCK_WATER_DATA))
+    CustomInputSheetView(hydrationData: .constant(HydrationEntry.MOCK_DATA))
 }
