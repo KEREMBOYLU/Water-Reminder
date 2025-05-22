@@ -8,15 +8,15 @@
 import SwiftUI
 
 struct AnalyticsView: View {
-    @Binding var waterData: [WaterData]
-    @State private var selectedRange = "Gün"
+    @Binding var HydrationData: [HydrationEntry]
+    @State private var selectedRange = "D"
     
     var body: some View {
         NavigationView {
             VStack(spacing: 20) {
                 
                 // Segmented control
-                let options = ["Gün", "Hafta", "Ay", "Yıl"]
+                let options = ["D", "W", "M", "Y"]
                 let selectedIndex = options.firstIndex(of: selectedRange) ?? 0
                 
                 GeometryReader { geo in
@@ -64,18 +64,17 @@ struct AnalyticsView: View {
                 .frame(height: 40)
                 .padding(.horizontal)
                 
-                // Daily chart view placeholder
-                if selectedRange == "Gün" {
-                    DailyChartView(data: $waterData)
+                if selectedRange == "D" {
+                    DailyChartView(HydrationData: $HydrationData)
                 }
-                if selectedRange == "Hafta" {
-                    WeeklyChartView(data: $waterData)
+                if selectedRange == "W" {
+                    WeeklyChartView(HydrationData: $HydrationData)
                 }
-                if selectedRange == "Ay" {
-                    MonthlyChartView(data: $waterData)
+                if selectedRange == "M" {
+                    MonthlyChartView(HydrationData: $HydrationData)
                 }
-                if selectedRange == "Yıl" {
-                    YearlyChartView(data: $waterData)
+                if selectedRange == "Y" {
+                    YearlyChartView(HydrationData: $HydrationData)
                 }
                 
                 Spacer()
@@ -86,5 +85,5 @@ struct AnalyticsView: View {
 }
 
 #Preview {
-    AnalyticsView(waterData: .constant(WaterData.MOCK_WATER_DATA))
+    AnalyticsView(HydrationData: .constant(HydrationEntry.MOCK_DATA))
 }

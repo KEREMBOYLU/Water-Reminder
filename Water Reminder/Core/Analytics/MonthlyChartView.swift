@@ -143,7 +143,7 @@ struct MonthlyChartView: View {
                 RuleMark(x: .value("Selected Day", selected, unit: .day))
                     .zIndex(-10)
                     .offset(yStart: -10)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(Color("WaterColor"))
                     .annotation(position: .top,
                                 spacing: 0,
                                 overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {

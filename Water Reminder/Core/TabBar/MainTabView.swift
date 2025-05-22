@@ -8,18 +8,18 @@
 import SwiftUI
 
 struct MainTabView: View {
-    @State private var waterData: [WaterData] = []
+    @State private var HydrationData: [HydrationEntry] = HydrationEntry.MOCK_DATA
     
     var body: some View {
         TabView{
-            AnalyticsView(waterData: $waterData)
+            AnalyticsView(HydrationData: $HydrationData)
                 .tabItem{
                     Image(systemName: "chart.bar.xaxis")
                 }
-            HomeView(waterData: $waterData)
-                .tabItem{
-                    Image(systemName: "waterbottle")
-                }
+//            HomeView(waterData: $waterData)
+//                .tabItem{
+//                    Image(systemName: "waterbottle")
+//                }
             Text("Settings")
                 .tabItem{
                     Image(systemName: "gearshape")
