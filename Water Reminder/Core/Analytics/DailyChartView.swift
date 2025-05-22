@@ -2,7 +2,7 @@ import SwiftUI
 import Charts
 
 struct DailyChartView: View {
-    @State var data: [HydrationEntry] = HydrationEntry.MOCK_DATA
+    @Binding var HydrationData: [HydrationEntry]
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
     @State private var selectedHour: Int? = nil
 
@@ -14,7 +14,7 @@ struct DailyChartView: View {
     }
 
     var todayEntries: [HydrationEntry] {
-        data.filter { Calendar.current.isDate($0.date, inSameDayAs: selectedDay) }
+        HydrationData.filter { Calendar.current.isDate($0.date, inSameDayAs: selectedDay) }
     }
 
     var hourlyTotals: [HourlyLiquidTotal] {
@@ -37,10 +37,12 @@ struct DailyChartView: View {
 
     var body: some View {
         
-        daySwitcherBar()
-            .padding()
         
-        VStack(alignment: .leading, spacing: 8) {
+        
+        VStack(alignment: .leading, spacing: 12) {
+            daySwitcherBar()
+                .padding(.bottom)
+            
             VStack(alignment: .leading, spacing: 4) {
                 if todayEntries.isEmpty {
                     Text("TOTAL")
@@ -72,11 +74,8 @@ struct DailyChartView: View {
                         .bold()
                 }
             }
-            .padding(.vertical, 8)
 
-            // Grafik
             hydrationStackedChart(hourlyTotals)
-
         }
         .padding(.horizontal)
         .animation(.easeInOut, value: selectedDay)
@@ -231,11 +230,9 @@ struct DailyChartView: View {
             }
         }
         .frame(height: 24)
-        .padding(.horizontal)
-        
     }
 }
 
 #Preview {
-    DailyChartView()
+    DailyChartView(HydrationData: .constant(HydrationEntry.MOCK_DATA))
 }
