@@ -34,6 +34,54 @@ struct DailyChartView: View {
         .sorted(by: { $0.hour < $1.hour })
     }
     
+
+    var body: some View {
+        
+        daySwitcherBar()
+            .padding()
+        
+        VStack(alignment: .leading, spacing: 8) {
+            VStack(alignment: .leading, spacing: 4) {
+                if todayEntries.isEmpty {
+                    Text("TOTAL")
+                        .font(.caption)
+                        .hidden()
+                    
+                    Text("No Data")
+                        .font(.title)
+                        .bold()
+                    
+                } else if selectedHour != nil {
+                    
+                    Text("TOTAL")
+                        .font(.caption)
+                        .hidden()
+                    
+                    Text("ml")
+                        .font(.title)
+                        .bold()
+                        .hidden()
+                    
+                } else {
+                    let totalAmount = todayEntries.reduce(0) { $0 + $1.amount }
+                    Text("TOTAL")
+                        .font(.caption)
+                    
+                    Text("\(totalAmount.localizedString()) ml")
+                        .font(.title)
+                        .bold()
+                }
+            }
+            .padding(.vertical, 8)
+
+            // Grafik
+            hydrationStackedChart(hourlyTotals)
+
+        }
+        .padding(.horizontal)
+        .animation(.easeInOut, value: selectedDay)
+    }
+    
     @ViewBuilder
     func daySwitcherBar() -> some View {
         HStack {
@@ -74,14 +122,11 @@ struct DailyChartView: View {
                     .padding()
             }
         }
-        .padding(.horizontal)
         .frame(height: 30)
         .background(
-            RoundedRectangle(cornerRadius: 10)
+            RoundedRectangle(cornerRadius: 8)
                 .fill(Color(.systemGray5))
-        )
-        .padding(.horizontal)
-    }
+        )}
 
     @ViewBuilder
     func hydrationStackedChart(_ data: [HourlyLiquidTotal]) -> some View {
@@ -147,6 +192,7 @@ struct DailyChartView: View {
         }
         .chartXSelection(value: $selectedHour)
         .chartXScale(domain: 0...23)
+        .chartXScale(range: .plotDimension(padding: 16))
         .chartXAxis {
             AxisMarks(values: [0, 6, 12, 18]) { value in
                 AxisGridLine()
@@ -166,54 +212,27 @@ struct DailyChartView: View {
                 }
             }
         }
-        .frame(height: 220)
-        .padding(.horizontal)
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            // Gün değiştirme barı
-            daySwitcherBar()
-
-            // Toplam miktar
-            VStack(alignment: .leading, spacing: 4) {
-                if todayEntries.isEmpty {
-                    
-                    Text(" ")
-                        .font(.title2)
-                        .bold()
-                    
-                    Text("No Data")
-                        .font(.title)
-                        .bold()
-                    
-                } else if selectedHour != nil {
-                    Text(" ")
-                        .font(.title2)
-                    
-                    Text(" ")
-                        .font(.title)
-                        .bold()
-                    
-                } else {
-                    let totalAmount = todayEntries.reduce(0) { $0 + $1.amount }
-                    
-                    Text("TOTAL")
-                        .font(.title2)
-                    
-                    Text("\(totalAmount) ml")
-                        .font(.title)
-                        .bold()
+        .frame(height: 240)
+        
+        let usedTypes = Set(todayEntries.map { $0.type })
+        
+        
+        HStack(spacing: 16) {
+            if !usedTypes.isEmpty {
+                ForEach(Array(usedTypes).sorted(by: { $0.stackPriority < $1.stackPriority }), id: \.id) { type in
+                    HStack(spacing: 4) {
+                        Circle()
+                            .fill(type.color)
+                            .frame(width: 10, height: 10)
+                        Text(type.name)
+                            .font(.caption)
+                    }
                 }
             }
-            .padding(.horizontal)
-            .padding(.vertical, 8)
-
-            // Grafik
-            hydrationStackedChart(hourlyTotals)
         }
-        .padding(.top)
-        .animation(.easeInOut, value: selectedDay)
+        .frame(height: 24)
+        .padding(.horizontal)
+        
     }
 }
 
