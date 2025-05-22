@@ -1,8 +1,8 @@
 //
-//  DateExtensions.swift
+//  DateExtension.swift
 //  Water Reminder
 //
-//  Created by KEREM BOYLU on 12.05.2025.
+//  Created by KEREM BOYLU on 22.05.2025.
 //
 
 import Foundation
@@ -10,11 +10,14 @@ import Foundation
 let preferred = Locale.preferredLanguages.first ?? "en"
 
 extension Date {
-    static func from(year: Int, month: Int, day: Int) -> Date? {
+
+    static func from(year: Int, month: Int, day: Int, hour: Int = 0, minute: Int = 0) -> Date? {
         var components = DateComponents()
         components.year = year
         components.month = month
         components.day = day
+        components.hour = hour
+        components.minute = minute
         return Calendar.current.date(from: components)
     }
     
@@ -77,20 +80,15 @@ extension Date {
         let weekday = calendar.component(.weekday, from: self)
         return Date.weekdaySymbol(for: weekday)
     }
-}
-
-extension Int {
-    func localizedString() -> String {
-        let formatter = NumberFormatter()
-        formatter.locale = Locale(identifier: preferred)
-        formatter.numberStyle = .decimal
-        formatter.maximumFractionDigits = 0
-        return formatter.string(from: NSNumber(value: self)) ?? "\(self)"
+    
+    func localHourComponent() -> Int {
+        let calendar = Calendar.current
+        let timeZone = TimeZone.current
+        return calendar.component(.hour, from: self.convertToTimeZone(timeZone))
     }
-}
-
-extension Collection {
-    subscript(safe index: Index) -> Element? {
-        return indices.contains(index) ? self[index] : nil
+    
+    func convertToTimeZone(_ timeZone: TimeZone) -> Date {
+        let delta = TimeInterval(timeZone.secondsFromGMT(for: self) - TimeZone(secondsFromGMT: 0)!.secondsFromGMT(for: self))
+        return addingTimeInterval(delta)
     }
 }
