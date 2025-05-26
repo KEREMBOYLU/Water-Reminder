@@ -28,7 +28,7 @@ struct HydrationType: Identifiable, Codable, Hashable {
 extension HydrationType {
     static let water = HydrationType(
         id: "water",
-        name: "Su",
+        name: "Water",
         waterRatio: 1.0,
         stackPriority: 1,
         iconName: "drop.fill",
@@ -37,7 +37,7 @@ extension HydrationType {
 
     static let coffee = HydrationType(
         id: "coffee",
-        name: "Kahve",
+        name: "Coffee",
         waterRatio: 0.9,
         stackPriority: 2,
         iconName: "cup.and.saucer.fill",
@@ -46,7 +46,7 @@ extension HydrationType {
 
     static let milk = HydrationType(
         id: "milk",
-        name: "Süt",
+        name: "Milk",
         waterRatio: 0.87,
         stackPriority: 3,
         iconName: "carton.fill",
@@ -55,7 +55,7 @@ extension HydrationType {
 
     static let juice = HydrationType(
         id: "juice",
-        name: "Meyve Suyu",
+        name: "Juice",
         waterRatio: 0.88,
         stackPriority: 4,
         iconName: "tropicaldrink.fill",

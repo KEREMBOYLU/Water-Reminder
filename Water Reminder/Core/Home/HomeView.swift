@@ -127,7 +127,7 @@ struct HomeView: View {
                     .font(.subheadline)
                     .bold()
                 Spacer()
-                Text("Kalan: \(remaining.localizedString())ml")
+                Text("Remaining: \(remaining.localizedString()) ml")
                     .font(.subheadline)
                     .bold()
             }
@@ -297,7 +297,7 @@ struct HomeView: View {
             CustomInputSheetView(hydrationData: $HydrationData)
                 .presentationDetents([.fraction(0.75)])
                 .presentationCornerRadius(24)
-                .presentationBackground(Color("WaterColor").opacity(0.3))
+                .presentationBackground(Color("BackgroundColor").opacity(0.9))
         }
         .onAppear {
             Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in

@@ -25,7 +25,7 @@ struct MainTabView: View {
                     Image(systemName: "gearshape")
                 }
         }
-        .accentColor(Color("tabBarItemColor"))
+        .accentColor(Color("WaterColor"))
     }
 }
 
