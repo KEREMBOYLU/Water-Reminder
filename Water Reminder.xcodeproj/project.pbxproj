@@ -6,6 +6,13 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		69739DC32DE5163D00C65EF7 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = 69739DC22DE5163D00C65EF7 /* FirebaseAnalyticsWithoutAdIdSupport */; };
+		69739DC52DE5163D00C65EF7 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = 69739DC42DE5163D00C65EF7 /* FirebaseAuth */; };
+		69739DC72DE5163D00C65EF7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = 69739DC62DE5163D00C65EF7 /* FirebaseCore */; };
+		69739DC92DE5163D00C65EF7 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = 69739DC82DE5163D00C65EF7 /* FirebaseFirestore */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		6912BDA72DC4118500E5839E /* Water Reminder.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "Water Reminder.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +30,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				69739DC32DE5163D00C65EF7 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
+				69739DC92DE5163D00C65EF7 /* FirebaseFirestore in Frameworks */,
+				69739DC72DE5163D00C65EF7 /* FirebaseCore in Frameworks */,
+				69739DC52DE5163D00C65EF7 /* FirebaseAuth in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +76,10 @@
 			);
 			name = "Water Reminder";
 			packageProductDependencies = (
+				69739DC22DE5163D00C65EF7 /* FirebaseAnalyticsWithoutAdIdSupport */,
+				69739DC42DE5163D00C65EF7 /* FirebaseAuth */,
+				69739DC62DE5163D00C65EF7 /* FirebaseCore */,
+				69739DC82DE5163D00C65EF7 /* FirebaseFirestore */,
 			);
 			productName = "Water Reminder";
 			productReference = 6912BDA72DC4118500E5839E /* Water Reminder.app */;
@@ -94,6 +109,9 @@
 			);
 			mainGroup = 6912BD9E2DC4118500E5839E;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				69739DC12DE5163D00C65EF7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 6912BDA82DC4118500E5839E /* Products */;
 			projectDirPath = "";
@@ -183,6 +201,7 @@
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
+				OTHER_LIBTOOLFLAGS = "";
 				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG $(inherited)";
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
@@ -240,6 +259,7 @@
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
+				OTHER_LIBTOOLFLAGS = "";
 				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				VALIDATE_PRODUCT = YES;
@@ -266,6 +286,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LIBTOOLFLAGS = "\"-XCExpApple true\" \"-XCBuilForPre true\" \"-WLinkingC true\"";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.kensens.Water-Reminder";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -298,6 +319,7 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0;
+				OTHER_LIBTOOLFLAGS = "\"-XCExpApple true\" \"-XCBuilForPre true\" \"-WLinkingC true\"";
 				PRODUCT_BUNDLE_IDENTIFIER = "com.kensens.Water-Reminder";
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -332,6 +354,40 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		69739DC12DE5163D00C65EF7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = exactVersion;
+				version = 11.13.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		69739DC22DE5163D00C65EF7 /* FirebaseAnalyticsWithoutAdIdSupport */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69739DC12DE5163D00C65EF7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalyticsWithoutAdIdSupport;
+		};
+		69739DC42DE5163D00C65EF7 /* FirebaseAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69739DC12DE5163D00C65EF7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAuth;
+		};
+		69739DC62DE5163D00C65EF7 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69739DC12DE5163D00C65EF7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		69739DC82DE5163D00C65EF7 /* FirebaseFirestore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = 69739DC12DE5163D00C65EF7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseFirestore;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 6912BD9F2DC4118500E5839E /* Project object */;
 }
