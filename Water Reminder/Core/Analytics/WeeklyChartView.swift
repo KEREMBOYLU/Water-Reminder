@@ -9,26 +9,21 @@ import SwiftUI
 import Charts
 
 
+struct DailyChartData: Identifiable {
+    var id: String { "\(date)-\(type.id)" }
+    let date: Date
+    let type: HydrationType
+    let value: Int
+}
+
 struct WeeklyChartView: View {
 
     @Binding var HydrationData: [HydrationEntry]
+    let types: [HydrationType]
     @State private var selectedWeek: DateInterval = Calendar.current.dateInterval(of: .weekOfYear,for: Date())!
     @State private var selectedDay: Date? = nil
-    
-    struct ViewDay: Identifiable {
-        let id = UUID()
-        let date: Date
-        let totalsByType: [HydrationType: Int]
-    }
-    
-    var selectedViewDay: ViewDay? {
-        guard let selectedDay else { return nil }
-        return viewDays.first { $0.date == selectedDay }
-    }
-    
-    var viewDays: [ViewDay] {
-        generateWeeklyTotals(from: HydrationData, for: selectedWeek)
-    }
+    @EnvironmentObject var typeManager: HydrationTypeManager
+
     
     var body: some View {
     
@@ -60,13 +55,13 @@ struct WeeklyChartView: View {
                     Text("AVERAGE")
                         .font(.caption)
                     
-                    Text("\(calculateAvarage(for: selectedWeek, using:HydrationData)) ml")
+                    Text("\(calculateAverage(for: selectedWeek, using:HydrationData)) ml")
                         .font(.title)
                         .bold()
                 }
             }
             
-            hydrationWeeklyChart(viewDays)
+            hydrationWeeklyChart(weeklyChartData)
         }
         .padding(.horizontal)
         .animation(.easeInOut, value: selectedWeek)
@@ -121,55 +116,62 @@ struct WeeklyChartView: View {
         )}
 
     @ViewBuilder
-    func hydrationWeeklyChart(_ viewDays: [ViewDay]) -> some View {
+    func hydrationWeeklyChart(_ chartData: [DailyChartData]) -> some View {
         Chart {
-            if let selected = selectedDay,
-               let viewDay = viewDays.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selected) }),
-               viewDay.totalsByType.values.reduce(0, +) > 0 {
-                RuleMark(x: .value("Selected Day", selected, unit: .day))
-                    .zIndex(-10)
-                    .offset(yStart: -10)
-                    .foregroundStyle(.secondary)
-                    .annotation(position: .top,
-                                spacing: 0,
-                                overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TOTAL")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(viewDay.totalsByType.values.reduce(0, +)) ml")
-                                .font(.title3)
-                                .bold()
-                            Text(viewDay.date.formattedDate(format: "d MMM yyyy"))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .bold()
+            if let selected = selectedDay {
+                let totalForDay = chartData
+                    .filter { Calendar.current.isDate($0.date, inSameDayAs: selected) }
+                    .reduce(0) { $0 + $1.value }
+
+                if totalForDay > 0 {
+                    RuleMark(x: .value("Selected Day", selected, unit: .day))
+                        .zIndex(-10)
+                        .offset(yStart: -10)
+                        .foregroundStyle(.secondary)
+                        .annotation(position: .top,
+                                    spacing: 0,
+                                    overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TOTAL")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\(totalForDay) ml")
+                                    .font(.title3)
+                                    .bold()
+                                Text(selected.formattedDate(format: "d MMM yyyy"))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                    .bold()
+                            }
+                            .padding(6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.systemGray6))
+                            )
                         }
-                        .padding(6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.systemGray6))
-                        )
-                    }
+                }
             }
 
-            ForEach(viewDays) { viewDay in
-                ForEach(viewDay.totalsByType.sorted(by: { $0.key.stackPriority < $1.key.stackPriority }), id: \.key) { type, total in
-                    BarMark(
-                        x: .value("Day", viewDay.date, unit: .day),
-                        y: .value("Amount", total),
-                        stacking: .standard
-                    )
-                    .foregroundStyle(type.color)
-                    .opacity(selectedDay == nil || Calendar.current.isDate(selectedDay!, inSameDayAs: viewDay.date) ? 1 : 0.3)
-                }
+            ForEach(chartData.sorted(by: { $0.type.stackPriority < $1.type.stackPriority })) { data in
+                BarMark(
+                    x: .value("Day", data.date, unit: .day),
+                    y: .value("Amount", data.value),
+                    stacking: .standard
+                )
+                .foregroundStyle(data.type.color)
+                .opacity(selectedDay == nil || Calendar.current.isDate(selectedDay!, inSameDayAs: data.date) ? 1 : 0.3)
             }
         }
         .chartXSelection(value: $selectedDay)
         .chartXScale(domain: selectedWeek.start...selectedWeek.end - 1)
         .chartXScale(range: .plotDimension(padding: 16))
         .chartXAxis {
-            AxisMarks(values: viewDays.map { $0.date }) { date in
+            let calendar = Calendar.current
+            let weekDays = (0..<7).compactMap {
+                calendar.date(byAdding: .day, value: $0, to: calendar.startOfDay(for: selectedWeek.start))
+            }
+
+            AxisMarks(values: weekDays) { date in
                 AxisGridLine()
                 AxisTick()
                 AxisValueLabel {
@@ -183,7 +185,7 @@ struct WeeklyChartView: View {
         }
         .frame(height: 240)
         
-        let usedTypes = Set(viewDays.flatMap { $0.totalsByType.keys })
+        let usedTypes = Set(chartData.map { $0.type })
         
         HStack(spacing: 16) {
             if !usedTypes.isEmpty{
@@ -200,20 +202,6 @@ struct WeeklyChartView: View {
         }
         .frame(height: 24)
     }
-
-    func generateWeeklyTotals(from data: [HydrationEntry], for week: DateInterval, calendar: Calendar = Calendar.current) -> [ViewDay] {
-        let weekStart = calendar.startOfDay(for: week.start)
-
-        return (0..<7).compactMap { offset in
-            guard let date = calendar.date(byAdding: .day, value: offset, to: weekStart) else {
-                return nil
-            }
-            let entriesForDay = data.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            let totalsByType = Dictionary(grouping: entriesForDay, by: { $0.type })
-                .mapValues { $0.reduce(0) { $0 + $1.amount } }
-            return ViewDay(date: date, totalsByType: totalsByType)
-        }
-    }
     
     func hasData(in week: DateInterval, data: [HydrationEntry]) -> Bool {
         let calendar = Calendar.current
@@ -228,8 +216,40 @@ struct WeeklyChartView: View {
         }
         return total > 0
     }
+}
+
+private extension WeeklyChartView {
+    var weekEntries: [HydrationEntry] {
+        HydrationData.filter { entry in
+            selectedWeek.contains(entry.date)
+        }
+    }
     
-    func calculateAvarage(for selectedWeek: DateInterval, using data: [HydrationEntry]) -> String {
+    var weeklyChartData: [DailyChartData] {
+        let calendar = Calendar.current
+        let groupedByDay = Dictionary(grouping: weekEntries) { entry in
+            calendar.startOfDay(for: entry.date)
+        }
+
+        return processGroupedEntries(groupedByDay)
+            .sorted { $0.date < $1.date }
+    }
+    
+    func processGroupedEntries(_ groupedByDay: [Date: [HydrationEntry]]) -> [DailyChartData] {
+        groupedByDay.flatMap { (date, entries) -> [DailyChartData] in
+            let groupedByType = Dictionary(grouping: entries, by: \.typeID)
+
+            return groupedByType.compactMap { typeID, sameTypeEntries in
+                guard let type = typeManager.types.first(where: { $0.id == typeID }) else { return nil }
+                let total = sameTypeEntries.reduce(0) { $0 + $1.amount }
+                return DailyChartData(date: date, type: type, value: total)
+            }
+        }
+    }
+}
+
+extension WeeklyChartView {
+    func calculateAverage(for selectedWeek: DateInterval, using data: [HydrationEntry]) -> String {
         let calendar = Calendar.current
         let weekStart = calendar.startOfDay(for: selectedWeek.start)
 
@@ -252,5 +272,6 @@ struct WeeklyChartView: View {
 }
 
 #Preview {
-    WeeklyChartView(HydrationData: .constant(HydrationEntry.MOCK_DATA))
+    WeeklyChartView(HydrationData: .constant([]), types: [])
+        .environmentObject(HydrationTypeManager())
 }

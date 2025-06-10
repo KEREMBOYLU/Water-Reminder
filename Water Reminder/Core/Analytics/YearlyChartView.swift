@@ -8,28 +8,20 @@
 import SwiftUI
 import Charts
 
+struct MonthlyChartData: Identifiable {
+    var id: String { "\(month)-\(type.id)" }
+    let month: Date
+    let type: HydrationType
+    let value: Int
+}
+
 struct YearlyChartView: View {
     
     @Binding var HydrationData: [HydrationEntry]
+    let types: [HydrationType]
     @State private var selectedYear: Date = Calendar.current.date(from: Calendar.current.dateComponents([.year], from: Date()))!
     @State private var selectedMonth: Date? = nil
-    
-    struct ViewMonth: Identifiable {
-        let id = UUID()
-        let date: Date
-        let totalsByType: [HydrationType: Int]
-    }
-    
-    var selectedViewMonth: ViewMonth? {
-        guard let selectedMonth else { return nil }
-        return viewMonths.first {
-            Calendar.current.isDate(selectedMonth, equalTo:$0.date, toGranularity:.month)
-        }
-    }
-    
-    var viewMonths: [ViewMonth] {
-        generateYearlyTotals(from: HydrationData, for: selectedYear)
-    }
+    @EnvironmentObject var typeManager: HydrationTypeManager
     
     var body: some View {
 
@@ -70,70 +62,93 @@ struct YearlyChartView: View {
                 }
             }
             
-            hydrationYearlyChart(viewMonths)
+            hydrationYearlyChart(yearlyChartData)
         }
         .padding(.horizontal)
         .animation(.easeInOut, value: selectedYear)
     }
     
-    @ViewBuilder
-    func hydrationYearlyChart(_ viewMonths: [ViewMonth]) -> some View {
-        Chart {
-            if let selected = selectedMonth,
-               let viewMonth = viewMonths.first(where: {
-                   Calendar.current.isDate(selected, equalTo: $0.date, toGranularity: .month )}),
-               viewMonth.totalsByType.values.reduce(0, +) > 0 {
-                let aligned = Calendar.current.date(from: Calendar.current.dateComponents([.year, .month], from: selected))!
-                RuleMark(x: .value("Selected Month", aligned, unit: .month))
-                    .zIndex(-10)
-                    .offset(yStart: -10)
-                    .foregroundStyle(Color("WaterColor"))
-                    .annotation(position: .top,
-                                spacing: 0,
-                                overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("DAILY AVARAGE")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-
-                            Text("\(calculateDailyAverage(from: HydrationData, for: selected, granularity: .month)) ml")
-                            .font(.title3)
-                            .bold()
-
-                            Text(viewMonth.date.formattedDate(format: "MMM yyyy"))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .bold()
-                        }
-                        .padding(6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.systemGray6))
-                        )
-                    }
-            }
+    var yearlyChartData: [MonthlyChartData] {
+        let calendar = Calendar.current
+        let year = calendar.component(.year, from: selectedYear)
+        var result: [MonthlyChartData] = []
+        
+        for month in 1...12 {
+            guard let monthDate = calendar.date(from: DateComponents(year: year, month: month)) else { continue }
             
-            ForEach(viewMonths) { viewMonth in
-                ForEach(viewMonth.totalsByType.sorted(by: { $0.key.stackPriority < $1.key.stackPriority}), id: \.key) { type, total in
-                    BarMark(
-                        x: .value("Month", viewMonth.date, unit: .month),
-                        y: .value("Amount", total),
-                        stacking: .standard
-                    )
-                    .foregroundStyle(type.color)
-                    .opacity({
-                        if let selected = selectedMonth {
-                            return Calendar.current.isDate(selected, equalTo: viewMonth.date, toGranularity: .month) ? 1 : 0.3
-                        } else {
-                            return 1
+            for type in typeManager.types {
+                let total = HydrationData.filter {
+                    calendar.component(.year, from: $0.date) == year &&
+                    calendar.component(.month, from: $0.date) == month &&
+                    $0.typeID == type.id
+                }.reduce(0) { $0 + $1.amount }
+                
+                result.append(MonthlyChartData(month: monthDate, type: type, value: total))
+            }
+        }
+        return result
+    }
+    
+    @ViewBuilder
+    func hydrationYearlyChart(_ chartData: [MonthlyChartData]) -> some View {
+        Chart {
+            // --- Begin Interactive Annotation Section ---
+            if let selected = selectedMonth {
+                let totalForMonth = chartData
+                    .filter { Calendar.current.isDate($0.month, equalTo: selected, toGranularity: .month) }
+                    .reduce(0) { $0 + $1.value }
+
+                if totalForMonth > 0 {
+                    RuleMark(x: .value("Selected Month", selected, unit: .month))
+                        .zIndex(-10)
+                        .offset(yStart: -10)
+                        .foregroundStyle(.secondary)
+                        .annotation(position: .top,
+                                    spacing: 0,
+                                    overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TOTAL")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\(totalForMonth) ml")
+                                    .font(.title3)
+                                    .bold()
+                                Text(selected.formattedDate(format: "MMM yyyy"))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                    .bold()
+                            }
+                            .padding(6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.systemGray6))
+                            )
                         }
-                    }())
                 }
+            }
+            // --- End Interactive Annotation Section ---
+
+            ForEach(chartData.sorted(by: { $0.type.stackPriority < $1.type.stackPriority })) { data in
+                BarMark(
+                    x: .value("Month", data.month, unit: .month),
+                    y: .value("Amount", data.value),
+                    stacking: .standard
+                )
+                .foregroundStyle(data.type.color)
+                .opacity({
+                    if let selected = selectedMonth {
+                        return Calendar.current.isDate(selected, equalTo: data.month, toGranularity: .month) ? 1 : 0.3
+                    } else {
+                        return 1
+                    }
+                }())
             }
         }
         .chartXSelection(value: $selectedMonth)
         .chartXAxis {
-            AxisMarks(values: viewMonths.map { $0.date }) { value in
+            AxisMarks(values: (1...12).compactMap { month in
+                Calendar.current.date(from: DateComponents(year: Calendar.current.component(.year, from: selectedYear), month: month))
+            }) { value in
                 AxisGridLine()
                 AxisTick()
                 AxisValueLabel {
@@ -145,7 +160,9 @@ struct YearlyChartView: View {
         }
         .frame(height: 240)
         
-        let usedTypes = Set(viewMonths.flatMap{ $0.totalsByType.keys })
+        let usedTypes = Set(chartData.map { $0.type }.filter { type in
+            chartData.contains(where: { $0.type == type && $0.value > 0 })
+        })
         
         HStack(spacing: 16) {
             if !usedTypes.isEmpty && hasData(in: selectedYear, data: HydrationData){
@@ -221,31 +238,6 @@ struct YearlyChartView: View {
                 .fill(Color(.systemGray5))
     )}
 
-    func generateYearlyTotals(from data: [HydrationEntry], for year: Date, calendar: Calendar = Calendar.current) -> [ViewMonth] {
-        let startOfYear = calendar.date(from: calendar.dateComponents([.year], from: year))!
-
-        return (1...12).compactMap { month in
-            guard let date = calendar.date(from: DateComponents(year: calendar.component(.year, from: startOfYear), month: month, day: 1)) else {
-            return nil
-        }
-            
-            let entriesForMonth = data.filter {
-                calendar.component(.year, from: $0.date) == calendar.component(.year, from: date) &&
-                calendar.component(.month, from: $0.date) == month
-            }
-
-            let totalsByType: [HydrationType: Int]
-            if entriesForMonth.isEmpty {
-                totalsByType = [HydrationType.water: 0]
-            } else {
-                totalsByType = Dictionary(grouping: entriesForMonth, by: { $0.type })
-                    .mapValues { $0.reduce(0) { $0 + $1.amount } }
-            }
-
-            return ViewMonth(date: date, totalsByType: totalsByType)
-        }
-    }
-
     func calculateAverage(_ data: [Int]) -> String {
         guard !data.isEmpty else { return "0" }
         let avg = data.reduce(0, +) / data.count
@@ -300,5 +292,6 @@ struct YearlyChartView: View {
 }
 
 #Preview {
-    YearlyChartView(HydrationData: .constant(HydrationEntry.MOCK_DATA))
+    YearlyChartView(HydrationData: .constant([]), types: [])
+        .environmentObject(HydrationTypeManager())
 }

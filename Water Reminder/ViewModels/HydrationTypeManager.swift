@@ -10,8 +10,9 @@ import FirebaseFirestore
 
 @MainActor
 class HydrationTypeManager: ObservableObject {
+    static let shared = HydrationTypeManager()
     @Published var types: [HydrationType] = []
-    
+        
     func loadTypes() {
         FirebaseService.fetchHydrationTypes { [weak self] fetchedTypes in
             DispatchQueue.main.async {

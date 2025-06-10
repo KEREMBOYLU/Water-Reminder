@@ -3,8 +3,10 @@ import Charts
 
 struct DailyChartView: View {
     @Binding var HydrationData: [HydrationEntry]
+    let types: [HydrationType]
     @State private var selectedDay = Calendar.current.startOfDay(for: Date())
     @State private var selectedHour: Int? = nil
+    @EnvironmentObject var typeManager: HydrationTypeManager
 
     struct HourlyLiquidTotal: Identifiable {
         var id: String { "\(hour)-\(type.id)" }
@@ -14,7 +16,9 @@ struct DailyChartView: View {
     }
 
     var todayEntries: [HydrationEntry] {
-        HydrationData.filter { Calendar.current.isDate($0.date, inSameDayAs: selectedDay) }
+        HydrationData.filter {
+            Calendar.current.isDate($0.date, equalTo: selectedDay, toGranularity: .day)
+        }
     }
 
     var hourlyTotals: [HourlyLiquidTotal] {
@@ -23,11 +27,19 @@ struct DailyChartView: View {
         }
 
         return groupedByHour.flatMap { hour, entriesInHour in
-            Dictionary(grouping: entriesInHour, by: \.type).map { type, sameTypeEntries in
-                HourlyLiquidTotal(
+            Dictionary(grouping: entriesInHour, by: \.typeID).compactMap { typeID, sameTypeEntries in
+                guard let resolvedType = types.first(where: { $0.id == typeID }) else {
+                    print("❌ Unknown typeID: \(typeID)")
+                    return nil
+                }
+
+                let total = sameTypeEntries.reduce(0) { $0 + $1.amount }
+                print("📊 hour: \(hour), type: \(resolvedType.name), total: \(total)")
+
+                return HourlyLiquidTotal(
                     hour: hour,
-                    type: type,
-                    total: sameTypeEntries.reduce(0) { $0 + $1.amount }
+                    type: resolvedType,
+                    total: total
                 )
             }
         }
@@ -174,8 +186,8 @@ struct DailyChartView: View {
                                 .font(.title3)
                                 .bold()
                             
-                            let hourDate = Calendar.current.date(bySettingHour: selected, minute: 0, second: 0, of: selectedDay)!
-                            let nextHourDate = Calendar.current.date(bySettingHour: selected+1, minute: 0, second: 0, of: selectedDay)!
+                            let hourDate = Calendar.current.date(bySettingHour: selected, minute: 0, second: 0, of: selectedDay) ?? selectedDay
+                            let nextHourDate = Calendar.current.date(bySettingHour: selected+1, minute: 0, second: 0, of: selectedDay) ?? selectedDay
                             
                             Text("\(selectedDay.formattedDate(format: "d MMM EEE")) \(hourDate.formattedDate(format: "HH"))–\(nextHourDate.formattedDate(format: "HH"))")
                                 .font(.caption2)
@@ -213,9 +225,11 @@ struct DailyChartView: View {
         }
         .frame(height: 240)
         
-        let usedTypes = Set(todayEntries.map { $0.type })
-        
-        
+        let usedTypes = Set(
+            todayEntries.compactMap { entry in
+                types.first(where: { $0.id == entry.typeID })
+            }
+        )
         HStack(spacing: 16) {
             if !usedTypes.isEmpty {
                 ForEach(Array(usedTypes).sorted(by: { $0.stackPriority < $1.stackPriority }), id: \.id) { type in
@@ -234,5 +248,6 @@ struct DailyChartView: View {
 }
 
 #Preview {
-    DailyChartView(HydrationData: .constant(HydrationEntry.MOCK_DATA))
+    DailyChartView(HydrationData: .constant([]), types: [])
+        .environmentObject(HydrationTypeManager())
 }

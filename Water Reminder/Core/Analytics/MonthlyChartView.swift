@@ -11,24 +11,11 @@ import Charts
 
 struct MonthlyChartView: View {
     @Binding var HydrationData: [HydrationEntry]
+    let types: [HydrationType]
     @State private var selectedMonth: DateInterval = Calendar.current.dateInterval(of: .month,for: Date())!
     @State private var selectedDay: Date? = nil
+    @EnvironmentObject var typeManager: HydrationTypeManager
     
-    struct ViewDay: Identifiable {
-        let id = UUID()
-        let date: Date
-        let totalsByType: [HydrationType: Int]
-    }
-    
-    var selectedViewDay: ViewDay? {
-        guard let selectedDay else { return nil }
-        return viewDays.first { $0.date == selectedDay }
-    }
-    
-    var viewDays: [ViewDay] {
-        generateMonthlyTotals(from: HydrationData, for: selectedMonth)
-    }
-
     var body: some View {
         
         VStack(alignment: .leading, spacing: 12) {
@@ -65,7 +52,7 @@ struct MonthlyChartView: View {
                 }
             }
             
-            hydrationMonthlyChart(viewDays)
+            hydrationMonthlyChart(monthlyChartData)
         }
         .padding(.horizontal)
         .animation(.easeInOut, value: selectedMonth)
@@ -135,58 +122,63 @@ struct MonthlyChartView: View {
     )}
     
     @ViewBuilder
-    func hydrationMonthlyChart(_ viewDays: [ViewDay]) -> some View {
+    func hydrationMonthlyChart(_ chartData: [DailyChartData]) -> some View {
         Chart {
-            if let selected = selectedDay,
-               let viewDay = viewDays.first(where: { Calendar.current.isDate($0.date, inSameDayAs: selected) }),
-               viewDay.totalsByType.values.reduce(0, +) > 0 {
-                RuleMark(x: .value("Selected Day", selected, unit: .day))
-                    .zIndex(-10)
-                    .offset(yStart: -10)
-                    .foregroundStyle(Color("WaterColor"))
-                    .annotation(position: .top,
-                                spacing: 0,
-                                overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TOTAL")
-                                .font(.caption)
-                                .foregroundColor(.secondary)
-                            Text("\(viewDay.totalsByType.values.reduce(0, +)) ml")
-                                .font(.title3)
-                                .bold()
-                            Text(viewDay.date.formattedDate(format: "d MMM yyyy"))
-                                .font(.caption)
-                                .foregroundColor(.gray)
-                                .bold()
+            if let selected = selectedDay {
+                let totalForDay = chartData
+                    .filter { Calendar.current.isDate($0.date, inSameDayAs: selected) }
+                    .reduce(0) { $0 + $1.value }
+
+                if totalForDay > 0 {
+                    RuleMark(x: .value("Selected Day", selected, unit: .day))
+                        .zIndex(-10)
+                        .offset(yStart: -10)
+                        .foregroundStyle(.secondary)
+                        .annotation(position: .top,
+                                    spacing: 0,
+                                    overflowResolution: .init(x: .fit(to: .chart), y: .disabled)) {
+                            VStack(alignment: .leading, spacing: 4) {
+                                Text("TOTAL")
+                                    .font(.caption)
+                                    .foregroundColor(.secondary)
+                                Text("\(totalForDay) ml")
+                                    .font(.title3)
+                                    .bold()
+                                Text(selected.formattedDate(format: "d MMM yyyy"))
+                                    .font(.caption)
+                                    .foregroundColor(.gray)
+                                    .bold()
+                            }
+                            .padding(6)
+                            .background(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .fill(Color(.systemGray6))
+                            )
                         }
-                        .padding(6)
-                        .background(
-                            RoundedRectangle(cornerRadius: 8)
-                                .fill(Color(.systemGray6))
-                        )
-                    }
+                }
             }
 
-            ForEach(viewDays) { viewDay in
-                ForEach(viewDay.totalsByType.sorted(by: { $0.key.stackPriority < $1.key.stackPriority }), id: \.key) { type, total in
-                    BarMark(
-                        x: .value("Day", viewDay.date, unit: .day),
-                        y: .value("Amount", total),
-                        stacking: .standard
-                    )
-                    .foregroundStyle(type.color)
-                    .opacity(selectedDay == nil || Calendar.current.isDate(selectedDay!, inSameDayAs: viewDay.date) ? 1 : 0.3)
-                }
+            ForEach(chartData.sorted(by: { $0.type.stackPriority < $1.type.stackPriority })) { data in
+                BarMark(
+                    x: .value("Day", data.date, unit: .day),
+                    y: .value("Amount", data.value),
+                    stacking: .standard
+                )
+                .foregroundStyle(data.type.color)
+                .opacity(selectedDay == nil || Calendar.current.isDate(selectedDay!, inSameDayAs: data.date) ? 1 : 0.3)
             }
         }
         .chartXSelection(value: $selectedDay)
         .chartXScale(domain: selectedMonth.start...selectedMonth.end - 1)
         .chartXScale(range: .plotDimension(padding: 16))
         .chartXAxis {
-            AxisMarks(values: viewDays.map { $0.date }.filter {
-                let day = Calendar.current.component(.day, from: $0)
-                return [1, 8, 15, 22, 29].contains(day)
-            }) { value in
+            let calendar = Calendar.current
+            let labelDays = [1, 8, 15, 22, 29]
+            let xAxisDates = labelDays.compactMap { day in
+                calendar.date(bySetting: .day, value: day, of: selectedMonth.start)
+            }
+
+            AxisMarks(values: xAxisDates) { value in
                 AxisGridLine()
                 AxisTick()
                 AxisValueLabel {
@@ -198,7 +190,7 @@ struct MonthlyChartView: View {
         }
         .frame(height: 240)
         
-        let usedTypes = Set(viewDays.flatMap { $0.totalsByType.keys })
+        let usedTypes = Set(chartData.map { $0.type })
         
         HStack(spacing: 16) {
             if !usedTypes.isEmpty{
@@ -214,23 +206,6 @@ struct MonthlyChartView: View {
             }
         }
         .frame(height: 24)
-    }
-    
-    func generateMonthlyTotals(from data: [HydrationEntry], for month: DateInterval, calendar: Calendar = Calendar.current) -> [ViewDay] {
-        let monthStart = calendar.startOfDay(for: month.start)
-        let range = calendar.range(of: .day, in: .month, for: monthStart) ?? 1..<32
-
-        return range.compactMap { day -> ViewDay? in
-            guard let date = calendar.date(bySetting: .day, value: day, of: monthStart) else {
-                return nil
-            }
-            let entriesForDay = data.filter { calendar.isDate($0.date, inSameDayAs: date) }
-            let totalsByType = Dictionary(grouping: entriesForDay, by: { $0.type
-            })
-                .mapValues{ $0.reduce(0) { $0 + $1.amount} }
-            
-            return ViewDay(date: date, totalsByType: totalsByType)
-        }
     }
     
     func hasData(in month: DateInterval, data: [HydrationEntry]) -> Bool {
@@ -252,7 +227,39 @@ struct MonthlyChartView: View {
         }
         return total > 0
     }
+}
+
+private extension MonthlyChartView {
+    var monthEntries: [HydrationEntry] {
+        HydrationData.filter { entry in
+            selectedMonth.contains(entry.date)
+        }
+    }
     
+    var monthlyChartData: [DailyChartData] {
+        let calendar = Calendar.current
+        let groupedByDay = Dictionary(grouping: monthEntries) { entry in
+            calendar.startOfDay(for: entry.date)
+        }
+
+        return processGroupedEntries(groupedByDay)
+            .sorted { $0.date < $1.date }
+    }
+    
+    func processGroupedEntries(_ groupedByDay: [Date: [HydrationEntry]]) -> [DailyChartData] {
+        groupedByDay.flatMap { (date, entries) -> [DailyChartData] in
+            let groupedByType = Dictionary(grouping: entries, by: \.typeID)
+
+            return groupedByType.compactMap { typeID, sameTypeEntries in
+                guard let type = typeManager.types.first(where: { $0.id == typeID }) else { return nil }
+                let total = sameTypeEntries.reduce(0) { $0 + $1.amount }
+                return DailyChartData(date: date, type: type, value: total)
+            }
+        }
+    }
+}
+
+extension MonthlyChartView {
     func calculateAverageForMonth(for selectedMonth: DateInterval, using data: [HydrationEntry]) -> String {
         let calendar = Calendar.current
         let monthStart = calendar.startOfDay(for: selectedMonth.start)
@@ -281,5 +288,6 @@ struct MonthlyChartView: View {
 }
 
 #Preview {
-    MonthlyChartView(HydrationData: .constant(HydrationEntry.MOCK_DATA))
+    MonthlyChartView(HydrationData: .constant([]), types: [])
+        .environmentObject(HydrationTypeManager())
 }
