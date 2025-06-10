@@ -1,11 +1,14 @@
 import SwiftUI
 
 struct CustomInputSheetView: View {
+    let onSave: () -> Void
     @Environment(\.dismiss) var dismiss
     @Binding var hydrationData: [HydrationEntry]
+    @ObservedObject var typeManager: HydrationTypeManager
     @State private var inputAmount = ""
     @State private var animateKeypad = false
     @State private var selectedTypeID: String = "water"
+    let currentUser: AppUser
     
     @ViewBuilder
         func numberButton(_ value: String) -> some View {
@@ -35,7 +38,7 @@ struct CustomInputSheetView: View {
     var body: some View {
         VStack(spacing: 16) {
             Picker("Type", selection: $selectedTypeID) {
-                ForEach(HydrationType.all, id: \.id) { type in
+                ForEach(typeManager.types, id: \.id) { type in
                     HStack {
                         type.icon
                         Text(" \(type.name)")
@@ -91,11 +94,18 @@ struct CustomInputSheetView: View {
             .animation(.easeOut(duration: 0.3), value: animateKeypad)
             
             Button(action: {
-                if let type = HydrationType.all.first(where: { $0.id == selectedTypeID }),
-                   let amount = Int(inputAmount), amount > 0 {
-                    let newEntry = HydrationEntry(id: UUID(), date: Date(), amount: amount, type: type)
-                    hydrationData.append(newEntry)
-                    dismiss()
+                if let amount = Int(inputAmount), amount > 0 {
+                    let userID = currentUser.id
+                    let newEntry = HydrationEntry(id: UUID().uuidString, date: Date(), amount: amount, typeID: selectedTypeID)
+                    FirebaseService.addHydrationEntry(for: userID, entry: newEntry) { error in
+                        if error == nil {
+                            hydrationData.append(newEntry)
+                            onSave()
+                            dismiss()
+                        } else {
+                            print("❌ Failed to save entry to Firestore")
+                        }
+                    }
                 }
             }){
                 Text("ADD")
@@ -114,6 +124,8 @@ struct CustomInputSheetView: View {
         }
         .padding()
         .onAppear {
-            animateKeypad = true}
+            animateKeypad = true
+            typeManager.loadTypes()
+        }
     }
 }

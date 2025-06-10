@@ -47,8 +47,9 @@ class MotionManager: ObservableObject {
 }
 
 struct HomeView: View {
-    @Binding var HydrationData: [HydrationEntry]
-    let targetAmount: Int = 4000
+    @Binding var currentUser: AppUser
+    @Binding var hydrationData: [HydrationEntry]
+    @StateObject var typeManager = HydrationTypeManager()
 
     @State var progress: CGFloat = 0
     @State var startAnimation: CGFloat = 0
@@ -58,9 +59,13 @@ struct HomeView: View {
     @State private var time: Double = 0.0
     
     func calculateTotalHydration(for date: Date) -> Int {
-        HydrationData
-            .filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
-            .reduce(0) { $0 + Int(Double($1.amount) * $1.type.waterRatio) }
+        let filteredData = hydrationData.filter { Calendar.current.isDate($0.date, inSameDayAs: date) }
+        let total = filteredData.reduce(0) { sum, entry in
+            let waterRatio = typeManager.types.first(where: { $0.id == entry.typeID })?.waterRatio ?? 1.0
+            let amount = Double(entry.amount) * waterRatio
+            return sum + Int(amount)
+        }
+        return total
     }
     
     var body: some View {
@@ -120,8 +125,8 @@ struct HomeView: View {
             HStack {
                 let today = Calendar.current.startOfDay(for: Date())
                 let totalToday = calculateTotalHydration(for: today)
-                let remaining = max(targetAmount - totalToday, 0)
-                let progressPercent = Int((CGFloat(totalToday) / CGFloat(targetAmount)) * 100)
+                let remaining = max((currentUser.dailyGoal ?? 0) - totalToday, 0)
+                let progressPercent = Int((CGFloat(totalToday) / CGFloat(currentUser.dailyGoal ?? 1)) * 100)
 
                 Text("\(totalToday)ml • \(progressPercent)%")
                     .font(.subheadline)
@@ -134,9 +139,7 @@ struct HomeView: View {
             .padding(.horizontal)
             
 
-            let totalToday = calculateTotalHydration(for: Calendar.current.startOfDay(for: Date()))
-
-            ProgressView(value: CGFloat(totalToday) / CGFloat(targetAmount))
+            ProgressView(value: CGFloat(calculateTotalHydration(for: Calendar.current.startOfDay(for: Date()))) / CGFloat(currentUser.dailyGoal ?? 1))
                 .progressViewStyle(LinearProgressViewStyle(tint: Color("WaterColor")))
                 .frame(height: 6)
                 .clipShape(Capsule())
@@ -149,11 +152,15 @@ struct HomeView: View {
                 
                 Button(action: {
                     let now = Date()
-                    HydrationData.append(HydrationEntry(id: UUID(), date: now, amount: 100, type: HydrationType.water))
-                    
-                    let today = Calendar.current.startOfDay(for: now)
-                    let totalToday = calculateTotalHydration(for: today)
-                    progress = min(CGFloat(totalToday) / CGFloat(targetAmount), 1.0)
+                    let entry = HydrationEntry(id: UUID().uuidString, date: now, amount: 100, typeID: "water")
+                    FirebaseService.addHydrationEntry(for: currentUser.id, entry: entry) { error in
+                        if error == nil {
+                            hydrationData.append(entry)
+                            let today = Calendar.current.startOfDay(for: now)
+                            let totalToday = calculateTotalHydration(for: today)
+                            progress = min(CGFloat(totalToday) / CGFloat(currentUser.dailyGoal ?? 1), 1.0)
+                        }
+                    }
                 }) {
                     ZStack(alignment: .bottomTrailing) {
                         Image("WaterGlass100")
@@ -181,11 +188,15 @@ struct HomeView: View {
                 
                 Button(action: {
                     let now = Date()
-                    HydrationData.append(HydrationEntry(id: UUID(), date: now, amount: 200, type: HydrationType.water))
-                    
-                    let today = Calendar.current.startOfDay(for: now)
-                    let totalToday = calculateTotalHydration(for: today)
-                    progress = min(CGFloat(totalToday) / CGFloat(targetAmount), 1.0)
+                    let entry = HydrationEntry(id: UUID().uuidString, date: now, amount: 200, typeID: "water")
+                    FirebaseService.addHydrationEntry(for: currentUser.id, entry: entry) { error in
+                        if error == nil {
+                            hydrationData.append(entry)
+                            let today = Calendar.current.startOfDay(for: now)
+                            let totalToday = calculateTotalHydration(for: today)
+                            progress = min(CGFloat(totalToday) / CGFloat(currentUser.dailyGoal ?? 1), 1.0)
+                        }
+                    }
                 }) {
                     ZStack(alignment: .bottomTrailing) {
                         Image("WaterGlass200")
@@ -213,11 +224,15 @@ struct HomeView: View {
                 
                 Button(action: {
                     let now = Date()
-                    HydrationData.append(HydrationEntry(id: UUID(), date: now, amount: 500, type: HydrationType.water))
-                    
-                    let today = Calendar.current.startOfDay(for: now)
-                    let totalToday = calculateTotalHydration(for: today)
-                    progress = min(CGFloat(totalToday) / CGFloat(targetAmount), 1.0)
+                    let entry = HydrationEntry(id: UUID().uuidString, date: now, amount: 500, typeID: "water")
+                    FirebaseService.addHydrationEntry(for: currentUser.id, entry: entry) { error in
+                        if error == nil {
+                            hydrationData.append(entry)
+                            let today = Calendar.current.startOfDay(for: now)
+                            let totalToday = calculateTotalHydration(for: today)
+                            progress = min(CGFloat(totalToday) / CGFloat(currentUser.dailyGoal ?? 1), 1.0)
+                        }
+                    }
                 }) {
                     ZStack(alignment: .bottomTrailing) {
                         Image("WaterBottle500")
@@ -294,19 +309,25 @@ struct HomeView: View {
         .padding()
         .frame(maxWidth: .infinity,maxHeight: .infinity,alignment: .top)
         .sheet(isPresented: $showCustomInput) {
-            CustomInputSheetView(hydrationData: $HydrationData)
-                .presentationDetents([.fraction(0.75)])
-                .presentationCornerRadius(24)
-                .presentationBackground(Color("BackgroundColor").opacity(0.9))
+            CustomInputSheetView(
+                onSave: {
+                    let today = Calendar.current.startOfDay(for: Date())
+                    let totalToday = calculateTotalHydration(for: today)
+                    progress = min(CGFloat(totalToday) / CGFloat(currentUser.dailyGoal ?? 1), 1.0)
+                }, hydrationData: $hydrationData,
+                typeManager: typeManager,
+                currentUser: currentUser
+            )
+            .presentationDetents([.fraction(0.75)])
+            .presentationCornerRadius(24)
+            .presentationBackground(Color("BackgroundColor").opacity(0.9))
+            
         }
         .onAppear {
+            typeManager.loadTypes()
             Timer.scheduledTimer(withTimeInterval: 0.02, repeats: true) { _ in
                 startAnimation += 1
             }
         }
     }
-}
-
-#Preview {
-    HomeView(HydrationData: .constant(HydrationEntry.MOCK_DATA))
 }

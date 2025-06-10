@@ -7,22 +7,14 @@
 
 import Foundation
 import Combine
+import FirebaseAuth
 
 class UserManager: ObservableObject {
-    @Published var currentUser: AppUser
+    @Published var currentUser: AppUser?
 
     init() {
-        self.currentUser = AppUser(
-            id: UUID().uuidString,
-            email: "kerem@example.com",
-            username: "keremb",
-            creationDate: Date(),
-            lastSignInDate: Date(),
-            age: 21,
-            height: 180,
-            weight: 70,
-            dailyGoal: 3000,
-        )
+        self.currentUser = nil
+        loadCurrentUser()
     }
     
     static var preview: UserManager {
@@ -39,5 +31,30 @@ class UserManager: ObservableObject {
             dailyGoal: 3000
         )
         return manager
+    }
+
+    func loadHydrationEntries(completion: @escaping ([HydrationEntry]) -> Void) {
+        FirebaseService.fetchHydrationEntries(for: currentUser?.id ?? "") { entries in
+            DispatchQueue.main.async {
+                completion(entries)
+            }
+        }
+    }
+
+    private func loadCurrentUser() {
+        guard let user = Auth.auth().currentUser else {
+            print("⚠️ No authenticated user found")
+            return
+        }
+
+        FirebaseService.fetchUser(userID: user.uid) { fetchedUser in
+            DispatchQueue.main.async {
+                if let fetchedUser = fetchedUser {
+                    self.currentUser = fetchedUser
+                } else {
+                    print("❌ Failed to fetch or decode user")
+                }
+            }
+        }
     }
 }
