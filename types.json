@@ -1,0 +1,44 @@
+[
+  {
+    "name": "Water",
+    "iconName": "drop",
+    "waterRatio": 1.0,
+    "colorHex": "#00BFFF",
+    "stackPriority": 0
+  },
+  {
+    "name": "Coffee",
+    "iconName": "cup.and.saucer",
+    "waterRatio": 0.85,
+    "colorHex": "#6F4E37",
+    "stackPriority": 1
+  },
+  {
+    "name": "Tea",
+    "iconName": "leaf",
+    "waterRatio": 0.95,
+    "colorHex": "#228B22",
+    "stackPriority": 2
+  },
+  {
+    "name": "Juice",
+    "iconName": "carton",
+    "waterRatio": 0.9,
+    "colorHex": "#FFA500",
+    "stackPriority": 3
+  },
+  {
+    "name": "Soda",
+    "iconName": "sparkles",
+    "waterRatio": 0.8,
+    "colorHex": "#1E90FF",
+    "stackPriority": 4
+  },
+  {
+    "name": "Milk",
+    "iconName": "drop.triangle",
+    "waterRatio": 0.87,
+    "colorHex": "#F8F8FF",
+    "stackPriority": 5
+  }
+]
